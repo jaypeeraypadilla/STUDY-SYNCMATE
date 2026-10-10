@@ -10,10 +10,12 @@ class NotesDashboardView(ctk.CTkFrame):
         self.controller = controller
         self.notes_logic = NotesManager()
 
-        # Temporary list to store attached file paths for the current note
+        # Temporary list to store newly selected attached file paths
         self.selected_file_paths = []
         # Stores currently loaded note ID for updating/editing
         self.editing_note_id = None
+        # Stores existing attachments when editing so they aren't lost
+        self.current_existing_attachments = []
 
         # Configure grid layout (2 columns: left for form, right for saved notes per subject)
         self.grid_columnconfigure(0, weight=1)
@@ -71,7 +73,7 @@ class NotesDashboardView(ctk.CTkFrame):
         )
         self.lbl_attachments_count.pack(side="left", padx=10)
 
-        # 5. Form Action Buttons (Save & Clear)
+        # 5. Form Action Buttons (Save/Update & Reset)
         self.actions_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         self.actions_frame.pack(fill="x", padx=20, pady=(10, 15))
 
@@ -155,13 +157,13 @@ class NotesDashboardView(ctk.CTkFrame):
             return
 
         if self.editing_note_id:
-            # Update existing note
+            # Update existing note (preserving old attachments + adding new ones)
             success, message = self.notes_logic.update_note(
                 note_id=self.editing_note_id,
                 title=title,
                 content=content,
                 subject=subject if subject else "General",
-                existing_attachments=[],
+                existing_attachments=self.current_existing_attachments,
                 new_attachment_paths=self.selected_file_paths
             )
         else:
@@ -182,9 +184,14 @@ class NotesDashboardView(ctk.CTkFrame):
             messagebox.showerror("Error", message)
 
     def clear_form(self):
-        """Resets the input fields and clears selected attachment state."""
+        """Resets the input fields and resets the Save/Update button state."""
         self.editing_note_id = None
+        self.current_existing_attachments = []
         self.form_title_label.configure(text="Create New Study Note")
+        
+        # Reset button back to "Save Note" (Green)
+        self.btn_save.configure(text="💾 Save Note", fg_color="#10B981", hover_color="#059669")
+        
         self.entry_subject.delete(0, "end")
         self.entry_title.delete(0, "end")
         self.textbox_content.delete("1.0", "end")
@@ -265,18 +272,30 @@ class NotesDashboardView(ctk.CTkFrame):
                 note = ref["note"]
                 if note:
                     self.editing_note_id = note["id"]
+                    self.current_existing_attachments = note.get("attachments", [])
+                    
+                    # Update form title & transform Save button into an "Update Note" button (Amber)
                     self.form_title_label.configure(text=f"Editing: {note['title']}")
+                    self.btn_save.configure(text="💾 Update Note", fg_color="#F59E0B", hover_color="#D97706")
+                    
                     self.entry_subject.delete(0, "end")
                     self.entry_subject.insert(0, note.get("subject", ""))
                     self.entry_title.delete(0, "end")
                     self.entry_title.insert(0, note.get("title", ""))
                     self.textbox_content.delete("1.0", "end")
                     self.textbox_content.insert("1.0", note.get("content", ""))
+                    
+                    if self.current_existing_attachments:
+                        self.lbl_attachments_count.configure(
+                            text=f"{len(self.current_existing_attachments)} existing file(s)",
+                            text_color="#3B82F6"
+                        )
 
             def delete_selected_note(ref=current_note_ref):
                 note = ref["note"]
                 if note and messagebox.askyesno("Confirm Delete", f"Delete topic '{note['title']}'?"):
                     self.notes_logic.delete_note(note["id"])
+                    self.clear_form()
                     self.load_user_notes()
 
             btn_edit_topic = ctk.CTkButton(
