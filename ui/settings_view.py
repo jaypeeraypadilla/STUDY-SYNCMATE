@@ -84,7 +84,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.0.9", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.1.1", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
