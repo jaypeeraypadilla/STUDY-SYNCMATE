@@ -4,7 +4,7 @@ from logic.quiz_generator import QuizGenerator
 
 
 class QuizGeneView(ctk.CTkFrame):
-    """Interactive Quiz & Flashcard workspace derived from saved notes."""
+    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, and Enumeration."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -19,12 +19,13 @@ class QuizGeneView(ctk.CTkFrame):
         self.current_quiz_idx = 0
         self.user_score = 0
         self.selected_option_var = ctk.StringVar(value="")
+        self.enum_entry_vars = []  # Stores string vars for enumeration input boxes
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # Main Container Frame
-        self.main_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#1E1E2E")
+        # Main Container Frame (Theme Adaptive)
+        self.main_card = ctk.CTkFrame(self, corner_radius=12, fg_color=("white", "#1E1E2E"))
         self.main_card.pack(fill="both", expand=True, padx=15, pady=15)
 
         self.build_setup_screen()
@@ -39,44 +40,50 @@ class QuizGeneView(ctk.CTkFrame):
             widget.destroy()
 
     # =============================================================
-    # SETUP SCREEN (Select Subject & Mode)
+    # SETUP SCREEN (Select Subject & Study Mode)
     # =============================================================
     def build_setup_screen(self):
         self.clear_container()
 
         ctk.CTkLabel(
             self.main_card, 
-            text="🧠 AI & Notes Quiz Generator", 
+            text="🧠 Intelligent Quiz & Flashcard Generator", 
             font=("Poppins", 20, "bold"), 
-            text_color="#FFFFFF"
+            text_color=("gray10", "#FFFFFF")
         ).pack(anchor="w", padx=25, pady=(20, 10))
 
         ctk.CTkLabel(
             self.main_card, 
-            text="Select a subject from your saved notes to start studying:", 
+            text="Select a subject and test mode generated from your saved notes:", 
             font=("Poppins", 12), 
-            text_color="#AAAAAA"
+            text_color=("gray50", "#AAAAAA")
         ).pack(anchor="w", padx=25, pady=(0, 15))
 
         user_id = self._get_user_id()
         subjects = self.quiz_logic.get_available_subjects(user_id)
 
-        ctk.CTkLabel(self.main_card, text="Subject:", font=("Poppins", 12, "bold")).pack(anchor="w", padx=25, pady=(5, 2))
+        ctk.CTkLabel(self.main_card, text="Subject:", font=("Poppins", 12, "bold"), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
         self.subject_dropdown = ctk.CTkOptionMenu(
             self.main_card, 
             values=subjects if subjects else ["No subjects available"],
             height=38,
-            fg_color="#2B2B3D",
+            fg_color=("gray85", "#2B2B3D"),
             button_color="#3B82F6"
         )
         self.subject_dropdown.pack(fill="x", padx=25, pady=(0, 20))
 
-        ctk.CTkLabel(self.main_card, text="Study Mode:", font=("Poppins", 12, "bold")).pack(anchor="w", padx=25, pady=(5, 2))
+        ctk.CTkLabel(self.main_card, text="Study Mode:", font=("Poppins", 12, "bold"), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
         self.mode_dropdown = ctk.CTkOptionMenu(
             self.main_card, 
-            values=["Flashcards Review", "Practice Quiz (Multiple Choice)"],
+            values=[
+                "Flashcards Review", 
+                "Practice Quiz (Multiple Choice)", 
+                "Identification Quiz", 
+                "Enumeration Practice", 
+                "Comprehensive Mixed Quiz"
+            ],
             height=38,
-            fg_color="#2B2B3D",
+            fg_color=("gray85", "#2B2B3D"),
             button_color="#10B981"
         )
         self.mode_dropdown.pack(fill="x", padx=25, pady=(0, 30))
@@ -110,16 +117,25 @@ class QuizGeneView(ctk.CTkFrame):
             self.showing_answer = False
             self.build_flashcard_screen()
         else:
-            self.active_quiz_questions = self.quiz_logic.generate_practice_quiz(user_id, subject)
-            if len(self.active_quiz_questions) < 1:
-                messagebox.showinfo("Info", "You need at least 2 detailed notes in this subject to generate a practice quiz.")
+            if "Multiple Choice" in mode:
+                self.active_quiz_questions = self.quiz_logic.generate_multiple_choice_questions(user_id, subject)
+            elif "Identification" in mode:
+                self.active_quiz_questions = self.quiz_logic.generate_identification_questions(user_id, subject)
+            elif "Enumeration" in mode:
+                self.active_quiz_questions = self.quiz_logic.generate_enumeration_questions(user_id, subject)
+            else:  # Comprehensive Mixed Quiz
+                self.active_quiz_questions = self.quiz_logic.generate_practice_quiz(user_id, subject)
+
+            if not self.active_quiz_questions:
+                messagebox.showinfo("Info", f"Not enough structured notes available to generate '{mode}' questions for '{subject}'.")
                 return
+
             self.current_quiz_idx = 0
             self.user_score = 0
             self.build_quiz_question_screen(subject)
 
     # =============================================================
-    # FLASHCARDS INTERACTIVE SCREEN
+    # FLASHCARDS SCREEN
     # =============================================================
     def build_flashcard_screen(self):
         self.clear_container()
@@ -140,30 +156,26 @@ class QuizGeneView(ctk.CTkFrame):
             header_frame, text="❌ Exit", width=70, height=28, fg_color="#EF4444", command=self.build_setup_screen
         ).pack(side="right")
 
-        # Flashcard Display Box
-        self.card_box = ctk.CTkFrame(self.main_card, fg_color="#2B2B3D", corner_radius=12, height=220)
+        self.card_box = ctk.CTkFrame(self.main_card, fg_color=("gray95", "#2B2B3D"), corner_radius=12, height=220)
         self.card_box.pack(fill="both", expand=True, padx=25, pady=10)
         self.card_box.pack_propagate(False)
 
-        self.lbl_card_title = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.card_box, 
             text=card_data["question"] if not self.showing_answer else "Answer / Summary:", 
             font=("Poppins", 12, "bold"), 
             text_color="#10B981"
-        )
-        self.lbl_card_title.pack(anchor="w", padx=20, pady=(20, 5))
+        ).pack(anchor="w", padx=20, pady=(20, 5))
 
-        self.lbl_card_content = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.card_box, 
             text=card_data["answer"] if self.showing_answer else card_data["answer"][:250] + "...", 
             font=("Poppins", 13), 
-            text_color="#FFFFFF", 
+            text_color=("gray10", "#FFFFFF"), 
             justify="left", 
             wraplength=550
-        )
-        self.lbl_card_content.pack(anchor="w", padx=20, pady=10, fill="both", expand=True)
+        ).pack(anchor="w", padx=20, pady=10, fill="both", expand=True)
 
-        # Navigation Controls
         nav_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         nav_frame.pack(fill="x", padx=25, pady=20)
 
@@ -190,45 +202,73 @@ class QuizGeneView(ctk.CTkFrame):
         self.build_flashcard_screen()
 
     # =============================================================
-    # PRACTICE QUIZ SCREEN
+    # PRACTICE QUIZ SCREEN (Multiple Choice, Identification, Enumeration)
     # =============================================================
     def build_quiz_question_screen(self, subject):
         self.clear_container()
 
         q_data = self.active_quiz_questions[self.current_quiz_idx]
+        q_type = q_data.get("type", "Multiple Choice")
         self.selected_option_var.set("")
+        self.enum_entry_vars = []
 
         header_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=15)
 
         ctk.CTkLabel(
             header_frame, 
-            text=f"Question {self.current_quiz_idx + 1} of {len(self.active_quiz_questions)}", 
+            text=f"[{q_type}]  Question {self.current_quiz_idx + 1} of {len(self.active_quiz_questions)}", 
             font=("Poppins", 14, "bold"), 
             text_color="#3B82F6"
         ).pack(side="left")
 
-        # Question Prompt Box
+        ctk.CTkLabel(
+            header_frame, text=f"Subject: {subject}", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")
+        ).pack(side="right")
+
+        # Question Prompt
         ctk.CTkLabel(
             self.main_card, 
             text=q_data["prompt"], 
             font=("Poppins", 13), 
-            text_color="#FFFFFF", 
+            text_color=("gray10", "#FFFFFF"), 
             justify="left", 
             wraplength=580
         ).pack(anchor="w", padx=25, pady=(5, 15))
 
-        # Radio Options
-        for option in q_data["options"]:
-            rb = ctk.CTkRadioButton(
-                self.main_card, 
-                text=option, 
-                variable=self.selected_option_var, 
-                value=option, 
-                font=("Poppins", 12),
-                fg_color="#3B82F6"
+        # RENDER INPUT WIDGETS BASED ON QUESTION TYPE
+        if q_type == "Multiple Choice":
+            for option in q_data["options"]:
+                rb = ctk.CTkRadioButton(
+                    self.main_card, 
+                    text=option, 
+                    variable=self.selected_option_var, 
+                    value=option, 
+                    font=("Poppins", 12),
+                    text_color=("gray10", "#FFFFFF"),
+                    fg_color="#3B82F6"
+                )
+                rb.pack(anchor="w", padx=35, pady=8)
+
+        elif q_type == "Identification":
+            self.id_entry = ctk.CTkEntry(
+                self.main_card, placeholder_text="Type the correct term or topic here...", height=40, font=("Poppins", 12)
             )
-            rb.pack(anchor="w", padx=35, pady=8)
+            self.id_entry.pack(fill="x", padx=35, pady=15)
+
+        elif q_type == "Enumeration":
+            scroll_enum = ctk.CTkScrollableFrame(self.main_card, fg_color="transparent", height=150)
+            scroll_enum.pack(fill="x", padx=25, pady=10)
+
+            items_count = len(q_data.get("items", []))
+            for idx in range(items_count):
+                row_f = ctk.CTkFrame(scroll_enum, fg_color="transparent")
+                row_f.pack(fill="x", pady=4)
+                ctk.CTkLabel(row_f, text=f"Item {idx + 1}:", font=("Poppins", 11, "bold"), width=65).pack(side="left")
+                
+                v = ctk.StringVar(value="")
+                self.enum_entry_vars.append(v)
+                ctk.CTkEntry(row_f, textvariable=v, height=32, font=("Poppins", 11)).pack(side="left", fill="x", expand=True, padx=5)
 
         # Submit Button
         ctk.CTkButton(
@@ -238,28 +278,49 @@ class QuizGeneView(ctk.CTkFrame):
             fg_color="#10B981",
             hover_color="#059669",
             height=40,
-            command=lambda: self.submit_quiz_answer(subject)
-        ).pack(fill="x", padx=25, pady=(30, 10))
+            command=lambda: self.submit_quiz_answer(subject, q_type)
+        ).pack(fill="x", padx=25, pady=(25, 10))
 
-    def submit_quiz_answer(self, subject):
-        chosen = self.selected_option_var.get()
-        if not chosen:
-            messagebox.showwarning("Warning", "Please select an answer option.")
-            return
-
+    def submit_quiz_answer(self, subject, q_type):
         q_data = self.active_quiz_questions[self.current_quiz_idx]
-        if chosen == q_data["correct_answer"]:
+        is_correct = False
+
+        if q_type == "Multiple Choice":
+            chosen = self.selected_option_var.get()
+            if not chosen:
+                messagebox.showwarning("Warning", "Please select an answer option.")
+                return
+            if chosen.strip().lower() == q_data["correct_answer"].strip().lower():
+                is_correct = True
+
+        elif q_type == "Identification":
+            entered_text = self.id_entry.get().strip()
+            if not entered_text:
+                messagebox.showwarning("Warning", "Please type your answer.")
+                return
+            if entered_text.lower() in q_data["correct_answer"].strip().lower() or q_data["correct_answer"].strip().lower() in entered_text.lower():
+                is_correct = True
+
+        elif q_type == "Enumeration":
+            user_items = [v.get().strip().lower() for v in self.enum_entry_vars if v.get().strip()]
+            correct_items = [item.strip().lower() for item in q_data["items"]]
+            
+            # Count how many items match
+            matched = sum(1 for ui in user_items if any(ci in ui or ui in ci for ci in correct_items))
+            if matched >= max(1, len(correct_items) // 2):  # Pass if at least half are correct
+                is_correct = True
+
+        if is_correct:
             self.user_score += 1
 
         self.current_quiz_idx += 1
         if self.current_quiz_idx < len(self.active_quiz_questions):
             self.build_quiz_question_screen(subject)
         else:
-            # Quiz Finished - Save Score
             total = len(self.active_quiz_questions)
             self.quiz_logic.save_quiz_result(
                 user_id=self._get_user_id(),
-                quiz_title=f"{subject} Review Quiz",
+                quiz_title=f"{subject} {q_type} Quiz",
                 subject=subject,
                 score=self.user_score,
                 total_questions=total
@@ -279,7 +340,7 @@ class QuizGeneView(ctk.CTkFrame):
             self.main_card, 
             text=f"Your Score: {self.user_score} / {total} ({percentage}%)", 
             font=("Poppins", 16, "bold"), 
-            text_color="#FFFFFF"
+            text_color=("gray10", "#FFFFFF")
         ).pack(pady=10)
 
         ctk.CTkButton(

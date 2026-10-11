@@ -86,7 +86,7 @@ class DashboardView(ctk.CTkFrame):
         nav_buttons = [
             ("🏠 Home", self.nav_home),
             ("📓 My Notes", self.nav_notes),
-            ("📝 Quizzes", self.nav_quizzes),
+            ("📝 Quizzes & FlashCards", self.nav_quizzes),
             ("📅 Schedule", self.nav_schedule),
             ("📊 Progress", self.nav_progress),
             ("⚙️ Settings", self.nav_settings),
