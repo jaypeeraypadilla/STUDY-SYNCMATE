@@ -4,9 +4,8 @@ from typing import List, Dict, Any, Optional
 
 class DatabaseManager:
     def __init__(self, db_filename: str = "syncmate.db"):
-        """Initializes database path and creates required tables."""
-        # Places syncmate.db in the root directory
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        """Initializes database path inside the database directory and creates required tables."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         self.db_path = os.path.join(base_dir, db_filename)
         self.init_db()
 
@@ -22,7 +21,7 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # 1. USERS TABLE (Authentication & Profile)
+            # 1. USERS TABLE (Authentication & Profile Management)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +39,7 @@ class DatabaseManager:
                 )
             """)
 
-            # 2. NOTES TABLE (Rich Text Notes with JSON Tag Formatting)
+            # 2. NOTES TABLE (Rich Text Notes with JSON Tags & File/Media Attachments)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS notes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,11 +48,11 @@ class DatabaseManager:
                     content TEXT NOT NULL,
                     subject TEXT DEFAULT 'General',
                     tags_json TEXT DEFAULT '[]',
-                    attachments_json TEXT DEFAULT '[]', -- Stores array of JSON objects [{filename, path, file_type}]
+                    attachments_json TEXT DEFAULT '[]', -- Stores array [{filename, saved_path, file_type}]
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-                );
+                )
             """)
 
             # 3. SCHEDULE & TASKS TABLE (Planner & Reminders)
@@ -101,37 +100,48 @@ class DatabaseManager:
             conn.commit()
 
     # ==========================================
-    # NOTES MODULE CRUD METHODS
+    # NOTES MODULE CRUD METHODS (With Media Support)
     # ==========================================
-    def create_note(self, user_id: int, title: str, content: str, tags_json: str = "[]", subject: str = "General") -> int:
-        """Inserts a new note and returns the new note ID."""
+    def create_note(
+        self, user_id: int, title: str, content: str, subject: str = "General", 
+        tags_json: str = "[]", attachments_json: str = "[]"
+    ) -> int:
+        """Inserts a new note with subject, tags, and media attachments."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO notes (user_id, title, content, tags_json, subject)
-                VALUES (?, ?, ?, ?, ?)
-            """, (user_id, title, content, tags_json, subject))
+                INSERT INTO notes (user_id, title, content, subject, tags_json, attachments_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, title, content, subject, tags_json, attachments_json))
             conn.commit()
             return cursor.lastrowid
 
-    def get_user_notes(self, user_id: int) -> List[Dict[str, Any]]:
-        """Retrieves all notes for a specific user ordered by last updated date."""
+    def get_user_notes(self, user_id: int, subject_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves all notes for a specific user, with optional subject filtering."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC
-            """, (user_id,))
+            if subject_filter and subject_filter != "All":
+                cursor.execute("""
+                    SELECT * FROM notes WHERE user_id = ? AND subject = ? ORDER BY updated_at DESC
+                """, (user_id, subject_filter))
+            else:
+                cursor.execute("""
+                    SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC
+                """, (user_id,))
             return [dict(row) for row in cursor.fetchall()]
 
-    def update_note(self, note_id: int, title: str, content: str, tags_json: str, subject: str = "General") -> bool:
-        """Updates content and rich text metadata for an existing note."""
+    def update_note(
+        self, note_id: int, title: str, content: str, subject: str, 
+        tags_json: str, attachments_json: str
+    ) -> bool:
+        """Updates note content, subject, tags, and attachments."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE notes
-                SET title = ?, content = ?, tags_json = ?, subject = ?, updated_at = CURRENT_TIMESTAMP
+                SET title = ?, content = ?, subject = ?, tags_json = ?, attachments_json = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (title, content, tags_json, subject, note_id))
+            """, (title, content, subject, tags_json, attachments_json, note_id))
             conn.commit()
             return cursor.rowcount > 0
 
@@ -151,19 +161,24 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO tasks (user_id, title, description, due_date, priority)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO tasks (user_id, title, description, due_date, priority, status)
+                VALUES (?, ?, ?, ?, ?, 'Pending')
             """, (user_id, title, description, due_date, priority))
             conn.commit()
             return cursor.lastrowid
 
-    def get_user_tasks(self, user_id: int) -> List[Dict[str, Any]]:
-        """Retrieves all tasks for a specific user ordered by due date."""
+    def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves tasks for a user, with optional status filtering ('Pending', 'Completed')."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM tasks WHERE user_id = ? ORDER BY due_date ASC
-            """, (user_id,))
+            if status_filter and status_filter != "All":
+                cursor.execute("""
+                    SELECT * FROM tasks WHERE user_id = ? AND status = ? ORDER BY due_date ASC
+                """, (user_id, status_filter))
+            else:
+                cursor.execute("""
+                    SELECT * FROM tasks WHERE user_id = ? ORDER BY due_date ASC
+                """, (user_id,))
             return [dict(row) for row in cursor.fetchall()]
 
     def update_task_status(self, task_id: int, status: str) -> bool:
@@ -212,19 +227,15 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Total Notes Count
             cursor.execute("SELECT COUNT(*) FROM notes WHERE user_id = ?", (user_id,))
             total_notes = cursor.fetchone()[0]
 
-            # Pending Tasks Count
             cursor.execute("SELECT COUNT(*) FROM tasks WHERE user_id = ? AND status != 'Completed'", (user_id,))
             pending_tasks = cursor.fetchone()[0]
 
-            # Total Study Minutes
             cursor.execute("SELECT SUM(duration_minutes) FROM study_sessions WHERE user_id = ?", (user_id,))
             total_minutes = cursor.fetchone()[0] or 0
 
-            # Average Quiz Percentage
             cursor.execute("""
                 SELECT AVG(CAST(score AS FLOAT) / total_questions * 100) 
                 FROM quiz_results WHERE user_id = ?

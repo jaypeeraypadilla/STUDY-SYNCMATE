@@ -48,22 +48,23 @@ class NotesDashboardView(ctk.CTkFrame):
 
         # 3. Notes Content Textbox
         ctk.CTkLabel(self.form_frame, text="Note Content:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
-        self.textbox_content = ctk.CTkTextbox(self.form_frame, height=180)
+        self.textbox_content = ctk.CTkTextbox(self.form_frame, height=150)
         self.textbox_content.pack(fill="x", padx=20, pady=(0, 10))
 
         # 4. Attachments Section
         self.attachment_frame = ctk.CTkFrame(self.form_frame, fg_color="#2B2B3D", corner_radius=8)
-        self.attachment_frame.pack(fill="x", padx=20, pady=10)
+        self.attachment_frame.pack(fill="x", padx=20, pady=5)
 
         self.btn_attach = ctk.CTkButton(
             self.attachment_frame,
-            text="📎 Upload Media / Files",
-            font=("Poppins", 12, "bold"),
+            text="📎 Upload Media",
+            font=("Poppins", 11, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
+            width=120,
             command=self.select_files
         )
-        self.btn_attach.pack(side="left", padx=10, pady=10)
+        self.btn_attach.pack(side="left", padx=10, pady=8)
 
         self.lbl_attachments_count = ctk.CTkLabel(
             self.attachment_frame, 
@@ -71,34 +72,46 @@ class NotesDashboardView(ctk.CTkFrame):
             font=("Poppins", 11),
             text_color="#AAAAAA"
         )
-        self.lbl_attachments_count.pack(side="left", padx=10)
+        self.lbl_attachments_count.pack(side="left", padx=5)
 
-        # 5. Form Action Buttons (Save/Update & Reset)
+        # 5. Form Action Buttons (Save with Attachments, Save Text Only, Reset)
         self.actions_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         self.actions_frame.pack(fill="x", padx=20, pady=(10, 15))
 
+        # Save/Update Button (Includes attachments if selected/existing)
         self.btn_save = ctk.CTkButton(
             self.actions_frame,
             text="💾 Save Note",
-            font=("Poppins", 14, "bold"),
+            font=("Poppins", 13, "bold"),
             fg_color="#10B981",
             hover_color="#059669",
-            height=40,
+            height=36,
             command=self.save_note
         )
-        self.btn_save.pack(side="left", expand=True, fill="x", padx=(0, 5))
+        self.btn_save.pack(fill="x", pady=(0, 5))
+
+        # NEW: Save Text Only Button (Ignores attachments)
+        self.btn_save_text_only = ctk.CTkButton(
+            self.actions_frame,
+            text="📝 Save Text Note Only",
+            font=("Poppins", 13, "bold"),
+            fg_color="#8B5CF6",
+            hover_color="#7C3AED",
+            height=36,
+            command=self.save_text_note_only
+        )
+        self.btn_save_text_only.pack(fill="x", pady=(0, 5))
 
         self.btn_clear = ctk.CTkButton(
             self.actions_frame,
-            text="Reset",
-            font=("Poppins", 12, "bold"),
+            text="Reset Form",
+            font=("Poppins", 11, "bold"),
             fg_color="#4B5563",
             hover_color="#374151",
-            height=40,
-            width=80,
+            height=32,
             command=self.clear_form
         )
-        self.btn_clear.pack(side="right", padx=(5, 0))
+        self.btn_clear.pack(fill="x")
 
         # =============================================================
         # RIGHT FRAME: SAVED NOTES GROUPED BY SUBJECT
@@ -146,7 +159,15 @@ class NotesDashboardView(ctk.CTkFrame):
             )
 
     def save_note(self):
-        """Reads user input and saves or updates the note in database."""
+        """Reads user input and saves or updates the note with attachments."""
+        self._execute_save(include_attachments=True)
+
+    def save_text_note_only(self):
+        """Reads user input and saves or updates the note strictly without attachments."""
+        self._execute_save(include_attachments=False)
+
+    def _execute_save(self, include_attachments: bool):
+        """Internal helper to handle database commit for both save methods."""
         user_id = self._get_user_id()
         subject = self.entry_subject.get().strip()
         title = self.entry_title.get().strip()
@@ -156,24 +177,26 @@ class NotesDashboardView(ctk.CTkFrame):
             messagebox.showwarning("Missing Title", "Please enter a title or topic for your note.")
             return
 
+        # Determine attachments payload based on mode
+        existing_atts = self.current_existing_attachments if include_attachments else []
+        new_atts = self.selected_file_paths if include_attachments else []
+
         if self.editing_note_id:
-            # Update existing note (preserving old attachments + adding new ones)
             success, message = self.notes_logic.update_note(
                 note_id=self.editing_note_id,
                 title=title,
                 content=content,
                 subject=subject if subject else "General",
-                existing_attachments=self.current_existing_attachments,
-                new_attachment_paths=self.selected_file_paths
+                existing_attachments=existing_atts,
+                new_attachment_paths=new_atts
             )
         else:
-            # Create new note
             success, message, note_id = self.notes_logic.create_note(
                 user_id=user_id,
                 title=title,
                 content=content,
                 subject=subject if subject else "General",
-                attachment_paths=self.selected_file_paths
+                attachment_paths=new_atts
             )
 
         if success:
@@ -184,13 +207,14 @@ class NotesDashboardView(ctk.CTkFrame):
             messagebox.showerror("Error", message)
 
     def clear_form(self):
-        """Resets the input fields and resets the Save/Update button state."""
+        """Resets the input fields and resets button states."""
         self.editing_note_id = None
         self.current_existing_attachments = []
         self.form_title_label.configure(text="Create New Study Note")
         
-        # Reset button back to "Save Note" (Green)
+        # Reset buttons back to default
         self.btn_save.configure(text="💾 Save Note", fg_color="#10B981", hover_color="#059669")
+        self.btn_save_text_only.configure(text="📝 Save Text Note Only")
         
         self.entry_subject.delete(0, "end")
         self.entry_title.delete(0, "end")
@@ -210,7 +234,6 @@ class NotesDashboardView(ctk.CTkFrame):
             ctk.CTkLabel(self.scroll_notes, text="No notes saved yet.", text_color="#888888").pack(pady=20)
             return
 
-        # Group notes by Subject: { "Computer Science": [note1, note2], "Math": [note3] }
         grouped_notes = {}
         for note in notes:
             subj = note.get("subject", "General") or "General"
@@ -218,12 +241,10 @@ class NotesDashboardView(ctk.CTkFrame):
                 grouped_notes[subj] = []
             grouped_notes[subj].append(note)
 
-        # Build UI card for each Subject
         for subject_name, subject_notes in grouped_notes.items():
             subject_card = ctk.CTkFrame(self.scroll_notes, fg_color="#2B2B3D", corner_radius=10)
             subject_card.pack(fill="x", pady=8, padx=5)
 
-            # 1. Subject Header
             ctk.CTkLabel(
                 subject_card, 
                 text=f"📚 {subject_name} ({len(subject_notes)} Topic{'s' if len(subject_notes) > 1 else ''})", 
@@ -231,7 +252,6 @@ class NotesDashboardView(ctk.CTkFrame):
                 text_color="#3B82F6"
             ).pack(anchor="w", padx=15, pady=(12, 4))
 
-            # 2. Topic/Title Dropdown Label
             ctk.CTkLabel(
                 subject_card, 
                 text="Select Topic / Title:", 
@@ -239,10 +259,8 @@ class NotesDashboardView(ctk.CTkFrame):
                 text_color="#AAAAAA"
             ).pack(anchor="w", padx=15, pady=(0, 2))
 
-            # Extract list of topic titles for dropdown
             topic_titles = [n["title"] for n in subject_notes]
 
-            # 3. Topic Preview Container
             preview_frame = ctk.CTkFrame(subject_card, fg_color="#1E1E2E", corner_radius=8)
             
             lbl_title = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 14, "bold"), text_color="#FFFFFF", anchor="w")
@@ -262,7 +280,6 @@ class NotesDashboardView(ctk.CTkFrame):
             lbl_attachments = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 10), text_color="#10B981", anchor="w")
             lbl_attachments.pack(fill="x", padx=12, pady=(2, 8))
 
-            # Action Buttons Frame (Edit & Delete)
             btn_frame = ctk.CTkFrame(preview_frame, fg_color="transparent")
             btn_frame.pack(fill="x", padx=12, pady=(0, 10))
 
@@ -274,9 +291,9 @@ class NotesDashboardView(ctk.CTkFrame):
                     self.editing_note_id = note["id"]
                     self.current_existing_attachments = note.get("attachments", [])
                     
-                    # Update form title & transform Save button into an "Update Note" button (Amber)
                     self.form_title_label.configure(text=f"Editing: {note['title']}")
                     self.btn_save.configure(text="💾 Update Note", fg_color="#F59E0B", hover_color="#D97706")
+                    self.btn_save_text_only.configure(text="📝 Update Text Only")
                     
                     self.entry_subject.delete(0, "end")
                     self.entry_subject.insert(0, note.get("subject", ""))
@@ -310,7 +327,6 @@ class NotesDashboardView(ctk.CTkFrame):
             )
             btn_delete_topic.pack(side="left")
 
-            # Callback when user selects a topic title from dropdown
             def make_topic_selector(s_notes, p_frame, l_title, l_content, l_att, ref_holder):
                 def on_topic_select(selected_title):
                     matched_note = next((n for n in s_notes if n["title"] == selected_title), None)
@@ -334,7 +350,6 @@ class NotesDashboardView(ctk.CTkFrame):
                 subject_notes, preview_frame, lbl_title, lbl_content, lbl_attachments, current_note_ref
             )
 
-            # 4. CTkOptionMenu Dropdown for Topics
             topic_dropdown = ctk.CTkOptionMenu(
                 subject_card,
                 values=topic_titles,
@@ -348,7 +363,6 @@ class NotesDashboardView(ctk.CTkFrame):
             )
             topic_dropdown.pack(fill="x", padx=15, pady=(0, 10))
 
-            # Auto-select first topic by default
             if topic_titles:
                 topic_dropdown.set(topic_titles[0])
                 on_select_callback(topic_titles[0])

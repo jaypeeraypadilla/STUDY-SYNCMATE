@@ -1,30 +1,104 @@
-import calendar
-import time
+import sqlite3
+from typing import List, Dict, Any, Tuple, Optional
+from database.db_connection import db
 
-class Schedule:
-    def __init__(self, year, month):
-        self.year = year
-        self.month = month
-        self.days_in_month = calendar.monthrange(year, month)[1]
-        self.schedule = {day: [] for day in range(1, self.days_in_month + 1)}
 
-    def add_task(self, day, task):
-        if 1 <= day <= self.days_in_month:
-            self.schedule[day].append(task)
-        else:
-            raise ValueError(f"Day must be between 1 and {self.days_in_month}")
+class ScheduleManager:
+    """Manages tasks, study planner items, and study session logs in SQLite."""
 
-    def remove_task(self, day, task):
-        if 1 <= day <= self.days_in_month:
-            if task in self.schedule[day]:
-                self.schedule[day].remove(task)
+    def __init__(self):
+        self.db = db
+
+    # =============================================================
+    # TASK MANAGEMENT (CRUD)
+    # =============================================================
+
+    def create_task(
+        self, user_id: int, title: str, description: str, due_date: str, priority: str = "Medium"
+    ) -> Tuple[bool, str]:
+        """Creates a new task with due date (YYYY-MM-DD) and priority."""
+        title = title.strip()
+        description = description.strip()
+        due_date = due_date.strip()
+
+        if not title:
+            return False, "Task title cannot be empty."
+
+        if not due_date:
+            return False, "Due date is required."
+
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO tasks (user_id, title, description, due_date, priority, status)
+                    VALUES (?, ?, ?, ?, ?, 'Pending')
+                """, (user_id, title, description, due_date, priority))
+                conn.commit()
+                return True, "Task added successfully!"
+        except Exception as e:
+            return False, f"Failed to add task: {str(e)}"
+
+    def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves tasks for a user ordered by due date."""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            if status_filter and status_filter != "All":
+                cursor.execute("""
+                    SELECT id, title, description, due_date, priority, status, created_at
+                    FROM tasks WHERE user_id = ? AND status = ?
+                    ORDER BY due_date ASC
+                """, (user_id, status_filter))
             else:
-                raise ValueError(f"Task '{task}' not found on day {day}")
-        else:
-            raise ValueError(f"Day must be between 1 and {self.days_in_month}")
+                cursor.execute("""
+                    SELECT id, title, description, due_date, priority, status, created_at
+                    FROM tasks WHERE user_id = ?
+                    ORDER BY due_date ASC
+                """, (user_id,))
+            
+            return [dict(row) for row in cursor.fetchall()]
 
-    def check_tasks(self, day):
-        if 1 <= day <= self.days_in_month:
-            return self.schedule[day]
-        else:
-            raise ValueError(f"Day must be between 1 and {self.days_in_month}")
+    def update_task_status(self, task_id: int, new_status: str) -> Tuple[bool, str]:
+        """Updates task status ('Pending', 'In Progress', 'Completed')."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE tasks SET status = ? WHERE id = ?
+                """, (new_status, task_id))
+                conn.commit()
+                return True, "Task status updated!"
+        except Exception as e:
+            return False, f"Failed to update task: {str(e)}"
+
+    def delete_task(self, task_id: int) -> Tuple[bool, str]:
+        """Deletes a task from the database."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+                conn.commit()
+                return True, "Task deleted successfully!"
+        except Exception as e:
+            return False, f"Delete failed: {str(e)}"
+
+    # =============================================================
+    # STUDY SESSION LOGS
+    # =============================================================
+
+    def log_study_session(self, user_id: int, subject: str, duration_minutes: int) -> Tuple[bool, str]:
+        """Logs a completed study session duration."""
+        if duration_minutes <= 0:
+            return False, "Duration must be greater than 0 minutes."
+
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO study_sessions (user_id, subject, duration_minutes)
+                    VALUES (?, ?, ?)
+                """, (user_id, subject, duration_minutes))
+                conn.commit()
+                return True, "Study session logged!"
+        except Exception as e:
+            return False, f"Failed to log study session: {str(e)}"
