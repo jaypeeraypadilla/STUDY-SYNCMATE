@@ -43,7 +43,7 @@ class SettingsViewFrame(ctk.CTkFrame):
         ctk.CTkLabel(self.appearance_frame, text="Font Size & UI Scale:", font=("Poppins", 12), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
         self.combo_scaling = ctk.CTkOptionMenu(
             self.appearance_frame,
-            values=["Small (90%)", "Normal (100%)", "Large (110%)", "Extra Large (120%)"],
+            values=["Small (90%)", "Normal (100%)", "Large (110%)", "Extra Large (120%)", "Super Extra Large (130%)"],
             command=self.change_ui_scaling,
             height=35,
             fg_color=("gray85", "#2B2B3D"),
@@ -84,7 +84,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.1.1", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.1.2", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
@@ -128,7 +128,8 @@ class SettingsViewFrame(ctk.CTkFrame):
             "Small (90%)": 0.9,
             "Normal (100%)": 1.0,
             "Large (110%)": 1.1,
-            "Extra Large (120%)": 1.2
+            "Extra Large (120%)": 1.2,
+            "Super Extra Large (130%)": 1.3
         }
         scale_val = scaling_map.get(scale_str, 1.0)
         ctk.set_widget_scaling(scale_val)

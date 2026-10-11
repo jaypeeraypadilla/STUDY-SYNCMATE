@@ -1,4 +1,6 @@
+import os
 import tkinter as tk
+from PIL import Image, ImageTk
 
 
 class LoginView(tk.Frame):
@@ -7,7 +9,24 @@ class LoginView(tk.Frame):
     super().__init__(parent)
     self.controller = controller
 
-    # Card Container
+    try:
+      # Get the directory where this script is located
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      # Build the full path: script_dir/assets/your_background.jpg
+      image_path = os.path.join(current_dir, "assets", "login_bg.jpeg")
+
+      self.original_image = Image.open(image_path)
+      self.bg_image = ImageTk.PhotoImage(self.original_image)
+
+      # Create a label for the background and make it fill the entire frame
+      self.bg_label = tk.Label(self, image=self.bg_image)
+      self.bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+      
+    except Exception as e:
+      print(f"Error loading background image from assets: {e}")
+      self.configure(bg="#1E1E1E")  # Fallback color
+
+    # 2. Card Container (Created AFTER bg_label so it sits on top)
     self.card = tk.Frame(self, width=380, height=480, bg="#2B2B2B")
     self.card.pack(expand=True, pady=20)
     self.card.pack_propagate(False)
