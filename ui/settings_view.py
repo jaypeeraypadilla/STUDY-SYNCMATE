@@ -16,51 +16,51 @@ class SettingsViewFrame(ctk.CTkFrame):
         # =============================================================
         # LEFT PANEL: APPEARANCE, THEME & FONT SIZE SETTINGS
         # =============================================================
-        self.appearance_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.appearance_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.appearance_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         ctk.CTkLabel(
             self.appearance_frame, 
             text="🎨 Appearance & Display", 
             font=("Poppins", 16, "bold"), 
-            text_color="#FFFFFF"
+            text_color=("gray10", "#FFFFFF")
         ).pack(anchor="w", padx=20, pady=(15, 15))
 
         # 1. Theme Appearance Mode (Dark / Light / System)
-        ctk.CTkLabel(self.appearance_frame, text="Interface Theme Mode:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
+        ctk.CTkLabel(self.appearance_frame, text="Interface Theme Mode:", font=("Poppins", 12), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
         self.combo_theme = ctk.CTkOptionMenu(
             self.appearance_frame,
             values=["Dark", "Light", "System"],
             command=self.change_appearance_mode,
             height=35,
-            fg_color="#2B2B3D",
+            fg_color=("gray85", "#2B2B3D"),
             button_color="#3B82F6"
         )
         self.combo_theme.set(ctk.get_appearance_mode())
         self.combo_theme.pack(fill="x", padx=20, pady=(0, 15))
 
         # 2. Font Size / UI Scaling Modifier
-        ctk.CTkLabel(self.appearance_frame, text="Font Size & UI Scale:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
+        ctk.CTkLabel(self.appearance_frame, text="Font Size & UI Scale:", font=("Poppins", 12), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
         self.combo_scaling = ctk.CTkOptionMenu(
             self.appearance_frame,
             values=["Small (90%)", "Normal (100%)", "Large (110%)", "Extra Large (120%)"],
             command=self.change_ui_scaling,
             height=35,
-            fg_color="#2B2B3D",
+            fg_color=("gray85", "#2B2B3D"),
             button_color="#10B981"
         )
         self.combo_scaling.set("Normal (100%)")
         self.combo_scaling.pack(fill="x", padx=20, pady=(0, 20))
 
         # Divider line
-        ctk.CTkFrame(self.appearance_frame, height=2, fg_color="#2B2B3D").pack(fill="x", padx=20, pady=10)
+        ctk.CTkFrame(self.appearance_frame, height=2, fg_color=("gray80", "#2B2B3D")).pack(fill="x", padx=20, pady=10)
 
         # Quick Save Note preference info
         ctk.CTkLabel(
             self.appearance_frame, 
             text="💡 Note: Theme changes and font scaling take effect instantly across the application.", 
             font=("Poppins", 10, "italic"), 
-            text_color="#AAAAAA",
+            text_color=("gray50", "#AAAAAA"),
             justify="left",
             wraplength=320
         ).pack(anchor="w", padx=20, pady=10)
@@ -68,11 +68,15 @@ class SettingsViewFrame(ctk.CTkFrame):
         # =============================================================
         # RIGHT PANEL: ABOUT & HELP / FAQ
         # =============================================================
-        self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.info_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
         # Tabs or Sections for About & Help
-        self.info_tabview = ctk.CTkTabview(self.info_frame, fg_color="#2B2B3D", segmented_button_fg_color="#1E1E2E")
+        self.info_tabview = ctk.CTkTabview(
+            self.info_frame, 
+            fg_color=("gray90", "#2B2B3D"), 
+            segmented_button_fg_color=("gray80", "#1E1E2E")
+        )
         self.info_tabview.pack(fill="both", expand=True, padx=15, pady=15)
 
         self.tab_about = self.info_tabview.add("About")
@@ -80,7 +84,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.0.8", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.0.8.1", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
@@ -90,7 +94,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             "Developed with Python, CustomTkinter, and SQLite."
         )
         ctk.CTkLabel(
-            self.tab_about, text=about_text, font=("Poppins", 11), text_color="#DDDDDD", justify="left", wraplength=320
+            self.tab_about, text=about_text, font=("Poppins", 11), text_color=("gray30", "#DDDDDD"), justify="left", wraplength=320
         ).pack(anchor="w", padx=10, pady=5)
 
         # --- HELP & FAQ TAB CONTENT ---
@@ -105,10 +109,10 @@ class SettingsViewFrame(ctk.CTkFrame):
         ]
 
         for q, a in faqs:
-            q_box = ctk.CTkFrame(self.help_scroll, fg_color="#1E1E2E", corner_radius=6)
+            q_box = ctk.CTkFrame(self.help_scroll, fg_color=("gray95", "#1E1E2E"), corner_radius=6)
             q_box.pack(fill="x", pady=4, padx=2)
-            ctk.CTkLabel(q_box, text=f"❓ {q}", font=("Poppins", 11, "bold"), text_color="#10B981").pack(anchor="w", padx=8, pady=(6, 2))
-            ctk.CTkLabel(q_box, text=a, font=("Poppins", 10), text_color="#AAAAAA", justify="left", wraplength=300).pack(anchor="w", padx=8, pady=(0, 6))
+            ctk.CTkLabel(q_box, text=f"❓ {q}", font=("Poppins", 11, "bold"), text_color=("#059669", "#10B981")).pack(anchor="w", padx=8, pady=(6, 2))
+            ctk.CTkLabel(q_box, text=a, font=("Poppins", 10), text_color=("gray50", "#AAAAAA"), justify="left", wraplength=300).pack(anchor="w", padx=8, pady=(0, 6))
 
     # =============================================================
     # EVENT HANDLERS
