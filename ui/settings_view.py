@@ -16,14 +16,14 @@ class SettingsViewFrame(ctk.CTkFrame):
         # =============================================================
         # LEFT PANEL: APPEARANCE, THEME & FONT SIZE SETTINGS
         # =============================================================
-        self.appearance_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
+        self.appearance_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E1E"))
         self.appearance_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         ctk.CTkLabel(
             self.appearance_frame, 
             text="🎨 Appearance & Display", 
             font=("Poppins", 16, "bold"), 
-            text_color=("gray10", "#FFFFFF")
+            text_color=("#1E1E1E", "#FFFFFF")
         ).pack(anchor="w", padx=20, pady=(15, 15))
 
         # 1. Theme Appearance Mode (Dark / Light / System)
@@ -33,7 +33,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             values=["Dark", "Light", "System"],
             command=self.change_appearance_mode,
             height=35,
-            fg_color=("gray85", "#2B2B3D"),
+            fg_color=("gray85", "#1E1E1E"),
             button_color="#3B82F6"
         )
         self.combo_theme.set(ctk.get_appearance_mode())
@@ -43,10 +43,10 @@ class SettingsViewFrame(ctk.CTkFrame):
         ctk.CTkLabel(self.appearance_frame, text="Font Size & UI Scale:", font=("Poppins", 12), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
         self.combo_scaling = ctk.CTkOptionMenu(
             self.appearance_frame,
-            values=["Small (90%)", "Normal (100%)", "Large (110%)", "Extra Large (120%)", "Super Extra Large (130%)"],
+            values=["Small (90%)", "Normal (100%)", "Large (110%)", "Extra Large (120%)"],
             command=self.change_ui_scaling,
             height=35,
-            fg_color=("gray85", "#2B2B3D"),
+            fg_color=("gray85", "#1E1E1E"),
             button_color="#10B981"
         )
         self.combo_scaling.set("Normal (100%)")
@@ -91,7 +91,8 @@ class SettingsViewFrame(ctk.CTkFrame):
             "Study SyncMate is a centralized, modular academic desktop application "
             "designed to help students organize notes, track tasks, generate practice quizzes, "
             "and monitor study progress seamlessly.\n\n"
-            "Developed with Python, CustomTkinter, and SQLite."
+            "Developers: SilverNox, Peony, Yanyan, Athan, Exil3, and Xywinn.\n\n\n\n"
+            "Developed with Python, Tkinter, CustomTkinter, and SQLite."
         )
         ctk.CTkLabel(
             self.tab_about, text=about_text, font=("Poppins", 11), text_color=("gray30", "#DDDDDD"), justify="left", wraplength=320
@@ -128,8 +129,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             "Small (90%)": 0.9,
             "Normal (100%)": 1.0,
             "Large (110%)": 1.1,
-            "Extra Large (120%)": 1.2,
-            "Super Extra Large (130%)": 1.3
+            "Extra Large (120%)": 1.2
         }
         scale_val = scaling_map.get(scale_str, 1.0)
         ctk.set_widget_scaling(scale_val)

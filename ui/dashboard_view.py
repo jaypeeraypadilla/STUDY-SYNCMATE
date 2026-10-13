@@ -27,7 +27,6 @@ class DashboardView(ctk.CTkFrame):
         # Grid configuration: Row 0 (Top Header), Row 1 (Sidebar + Main Workspace)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
-
         # =============================================================
         # 1. TOP NAVBAR / HEADER
         # =============================================================
