@@ -10,6 +10,7 @@ class ProfileViewFrame(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
         self.profile_logic = ProfileManager()
+        self.is_editing = False  # Tracks whether fields are unlocked for editing
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -35,7 +36,7 @@ class ProfileViewFrame(ctk.CTkFrame):
 
         # Full Name
         ctk.CTkLabel(self.info_frame, text="Full Name:", font=("Poppins", 11)).pack(anchor="w", padx=20, pady=(2, 0))
-        self.entry_name = ctk.CTkEntry(self.info_frame, height=32)
+        self.entry_name = ctk.CTkEntry(self.info_frame, height=32, state="disabled")
         self.entry_name.pack(fill="x", padx=20, pady=(0, 8))
 
         # Age & Gender Row
@@ -44,7 +45,7 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.row_age_gender.grid_columnconfigure((0, 1), weight=1)
 
         ctk.CTkLabel(self.row_age_gender, text="Age:", font=("Poppins", 11)).grid(row=0, column=0, sticky="w")
-        self.entry_age = ctk.CTkEntry(self.row_age_gender, height=32, width=80)
+        self.entry_age = ctk.CTkEntry(self.row_age_gender, height=32, width=80, state="disabled")
         self.entry_age.grid(row=1, column=0, sticky="ew", padx=(0, 5))
 
         ctk.CTkLabel(self.row_age_gender, text="Gender:", font=("Poppins", 11)).grid(row=0, column=1, sticky="w", padx=(5, 0))
@@ -53,7 +54,8 @@ class ProfileViewFrame(ctk.CTkFrame):
             values=["Male", "Female", "Prefer not to say"], 
             height=32,
             fg_color="#2B2B3D", 
-            button_color="#3B82F6"
+            button_color="#3B82F6",
+            state="disabled"
         )
         self.combo_gender.grid(row=1, column=1, sticky="ew", padx=(5, 0))
 
@@ -63,7 +65,7 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.row_academic.grid_columnconfigure((0, 1), weight=1)
 
         ctk.CTkLabel(self.row_academic, text="Course / Program:", font=("Poppins", 11)).grid(row=0, column=0, sticky="w")
-        self.entry_course = ctk.CTkEntry(self.row_academic, height=32)
+        self.entry_course = ctk.CTkEntry(self.row_academic, height=32, state="disabled")
         self.entry_course.grid(row=1, column=0, sticky="ew", padx=(0, 5))
 
         ctk.CTkLabel(self.row_academic, text="Year Level:", font=("Poppins", 11)).grid(row=0, column=1, sticky="w", padx=(5, 0))
@@ -72,21 +74,22 @@ class ProfileViewFrame(ctk.CTkFrame):
             values=["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"], 
             height=32,
             fg_color="#2B2B3D", 
-            button_color="#3B82F6"
+            button_color="#3B82F6",
+            state="disabled"
         )
         self.combo_year.grid(row=1, column=1, sticky="ew", padx=(5, 0))
 
-        # Update Profile Button
-        self.btn_update_profile = ctk.CTkButton(
+        # Edit / Save Changes Toggle Button
+        self.btn_edit_save = ctk.CTkButton(
             self.info_frame,
-            text="💾 Save Profile Changes",
+            text="✏️ Edit Changes",
             font=("Poppins", 12, "bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
+            fg_color="#3B82F6",
+            hover_color="#2563EB",
             height=38,
-            command=self.save_profile
+            command=self.toggle_edit_mode
         )
-        self.btn_update_profile.pack(fill="x", padx=20, pady=(10, 15))
+        self.btn_edit_save.pack(fill="x", padx=20, pady=(10, 15))
 
         # =============================================================
         # RIGHT PANEL: SECURITY & PASSWORD CHANGE
@@ -139,6 +142,54 @@ class ProfileViewFrame(ctk.CTkFrame):
             return self.controller.current_user.get("id")
         return None
 
+    def toggle_edit_mode(self):
+        """Toggles between locked view mode and editable save mode."""
+        if not self.is_editing:
+            # Switch to editing state
+            self.is_editing = True
+            self.entry_name.configure(state="normal")
+            self.entry_age.configure(state="normal")
+            self.combo_gender.configure(state="normal")
+            self.entry_course.configure(state="normal")
+            self.combo_year.configure(state="normal")
+
+            self.btn_edit_save.configure(text="💾 Save Changes", fg_color="#10B981", hover_color="#059669")
+        else:
+            # Save updates and lock fields back
+            user_id = self._get_user_id()
+            if not user_id:
+                messagebox.showerror("Session Error", "No active user session found.")
+                return
+
+            success, message, updated_data = self.profile_logic.update_profile(
+                user_id=user_id,
+                full_name=self.entry_name.get(),
+                age=self.entry_age.get(),
+                gender=self.combo_gender.get(),
+                course=self.entry_course.get(),
+                year_level=self.combo_year.get()
+            )
+
+            if success:
+                messagebox.showinfo("Success", message)
+                if hasattr(self.controller, "current_user") and self.controller.current_user:
+                    self.controller.current_user.update(updated_data)
+                    
+                if hasattr(self.controller, "frames") and "DashboardView" in self.controller.frames:
+                    self.controller.frames["DashboardView"].on_show()
+
+                # Lock fields back
+                self.is_editing = False
+                self.entry_name.configure(state="disabled")
+                self.entry_age.configure(state="disabled")
+                self.combo_gender.configure(state="disabled")
+                self.entry_course.configure(state="disabled")
+                self.combo_year.configure(state="disabled")
+
+                self.btn_edit_save.configure(text="✏️ Edit Changes", fg_color="#3B82F6", hover_color="#2563EB")
+            else:
+                messagebox.showerror("Error", message)
+
     def load_profile_data(self):
         """Fetches current user profile from database and populates UI fields."""
         user_id = self._get_user_id()
@@ -147,56 +198,33 @@ class ProfileViewFrame(ctk.CTkFrame):
 
         profile = self.profile_logic.get_user_profile(user_id)
         if profile:
-            # Enable disabled field temporarily to insert value
             self.entry_username.configure(state="normal")
             self.entry_username.delete(0, "end")
             self.entry_username.insert(0, profile.get("username", ""))
             self.entry_username.configure(state="disabled")
 
+            self.entry_name.configure(state="normal")
             self.entry_name.delete(0, "end")
             self.entry_name.insert(0, profile.get("full_name", ""))
+            self.entry_name.configure(state="disabled" if not self.is_editing else "normal")
 
+            self.entry_age.configure(state="normal")
             self.entry_age.delete(0, "end")
             self.entry_age.insert(0, str(profile.get("age", "")))
+            self.entry_age.configure(state="disabled" if not self.is_editing else "normal")
 
             gender = profile.get("gender", "Male")
             self.combo_gender.set(gender if gender in ["Male", "Female", "Prefer not to say"] else "Male")
 
+            self.entry_course.configure(state="normal")
             self.entry_course.delete(0, "end")
             self.entry_course.insert(0, profile.get("course", ""))
+            self.entry_course.configure(state="disabled" if not self.is_editing else "normal")
 
             year = profile.get("year_level", "1st Year")
             self.combo_year.set(year)
 
             self.lbl_sec_question.configure(text=profile.get("security_question", "None set"))
-
-    def save_profile(self):
-        """Saves personal info changes and updates controller session."""
-        user_id = self._get_user_id()
-        if not user_id:
-            messagebox.showerror("Session Error", "No active user session found.")
-            return
-
-        success, message, updated_data = self.profile_logic.update_profile(
-            user_id=user_id,
-            full_name=self.entry_name.get(),
-            age=self.entry_age.get(),
-            gender=self.combo_gender.get(),
-            course=self.entry_course.get(),
-            year_level=self.combo_year.get()
-        )
-
-        if success:
-            messagebox.showinfo("Success", message)
-            # Update session user data so top header welcome label updates immediately
-            if hasattr(self.controller, "current_user") and self.controller.current_user:
-                self.controller.current_user.update(updated_data)
-                
-            # Trigger top bar header update on parent dashboard view
-            if hasattr(self.controller, "frames") and "DashboardView" in self.controller.frames:
-                self.controller.frames["DashboardView"].on_show()
-        else:
-            messagebox.showerror("Error", message)
 
     def save_password(self):
         """Updates user password."""
@@ -218,4 +246,13 @@ class ProfileViewFrame(ctk.CTkFrame):
 
     def on_show(self):
         """Triggered automatically when profile view is raised."""
+        self.is_editing = False
+        self.btn_edit_save.configure(text="✏️ Edit Changes", fg_color="#3B82F6", hover_color="#2563EB")
         self.load_profile_data()
+        
+        # Ensure fields start disabled whenever view is opened
+        self.entry_name.configure(state="disabled")
+        self.entry_age.configure(state="disabled")
+        self.combo_gender.configure(state="disabled")
+        self.entry_course.configure(state="disabled")
+        self.combo_year.configure(state="disabled")

@@ -6,11 +6,13 @@ from logic.my_notes import NotesManager
 from logic.quiz_generator import QuizGenerator
 from logic.schedule import ScheduleManager
 from logic.progress import ProgressTracker
+from ui.onboarding_tutorial import OnboardingTutorial
 from ui.notes_dashboard_ui import NotesDashboardView
 from ui.profile_view import ProfileViewFrame
 from ui.quiz_gene_ui import QuizGeneView
 from ui.schedule_ui import ScheduleViewFrame
 from ui.progress_ui import ProgressViewFrame
+from ui.settings_view import SettingsViewFrame
 
 
 class DashboardView(ctk.CTkFrame):
@@ -27,12 +29,12 @@ class DashboardView(ctk.CTkFrame):
         # Grid configuration: Row 0 (Top Header), Row 1 (Sidebar + Main Workspace)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
+
         # =============================================================
         # 1. TOP NAVBAR / HEADER
         # =============================================================
-        self.header_frame = ctk.CTkFrame(self, height=60, corner_radius=10, fg_color=("gray90", "#1E1E2E"))
+        self.header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("gray90", "#1E1E2E"))
         self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
-        self.header_frame.pack_propagate(False)
 
         # Welcome Label
         self.welcome_label = ctk.CTkLabel(
@@ -41,7 +43,7 @@ class DashboardView(ctk.CTkFrame):
             font=("Poppins", 18, "bold"), 
             text_color=("gray10", "#FFFFFF")
         )
-        self.welcome_label.pack(side="left", padx=20)
+        self.welcome_label.pack(side="left", padx=20, pady=12)
 
         # Header Buttons
         self.btn_logout = ctk.CTkButton(
@@ -54,7 +56,7 @@ class DashboardView(ctk.CTkFrame):
             hover_color="#550000",
             command=self.handle_logout
         )
-        self.btn_logout.pack(side="right", padx=(5, 15))
+        self.btn_logout.pack(side="right", padx=(5, 15), pady=12)
 
         self.btn_profile = ctk.CTkButton(
             self.header_frame, 
@@ -66,14 +68,27 @@ class DashboardView(ctk.CTkFrame):
             hover_color="#000055",
             command=self.nav_profile
         )
-        self.btn_profile.pack(side="right", padx=5)
+        self.btn_profile.pack(side="right", padx=5, pady=12)
+
+        # Tutorial Tour Button
+        self.btn_tutorial = ctk.CTkButton(
+            self.header_frame, 
+            text="💡 Tutorial", 
+            width=90, 
+            height=32,
+            font=("Poppins", 12, "bold"), 
+            fg_color="#3B82F6", 
+            hover_color="#2563EB",
+            command=self.open_tutorial
+        )
+        self.btn_tutorial.pack(side="right", padx=5, pady=12)
 
         # =============================================================
         # 2. LEFT SIDEBAR NAVIGATION
         # =============================================================
-        self.sidebar_frame = ctk.CTkFrame(self, width=180, corner_radius=10, fg_color=("gray85", "#2B2B2B"))
+        self.sidebar_frame = ctk.CTkFrame(self, width=190, corner_radius=10, fg_color=("gray85", "#2B2B2B"))
         self.sidebar_frame.grid(row=1, column=0, sticky="nsew", padx=(10, 5), pady=5)
-        self.sidebar_frame.pack_propagate(False)
+        self.sidebar_frame.grid_propagate(False)
 
         ctk.CTkLabel(
             self.sidebar_frame, 
@@ -85,7 +100,7 @@ class DashboardView(ctk.CTkFrame):
         nav_buttons = [
             ("🏠 Home", self.nav_home),
             ("📓 My Notes", self.nav_notes),
-            ("📝 Quizzes/FlashCards", self.nav_quizzes),
+            ("📝 Quizzes", self.nav_quizzes),
             ("📅 Schedule", self.nav_schedule),
             ("📊 Progress", self.nav_progress),
             ("⚙️ Settings", self.nav_settings),
@@ -134,7 +149,7 @@ class DashboardView(ctk.CTkFrame):
         self.sub_views = {}
 
         # -------------------------------------------------------------
-        # 3A. HOME SUB-VIEW (Theme-Adaptive Sketch Layout)
+        # 3A. HOME SUB-VIEW (Theme-Adaptive & Fluid Layout)
         # -------------------------------------------------------------
         self.home_view = ctk.CTkFrame(self.workspace_container, fg_color="transparent")
         self.home_view.grid_columnconfigure(0, weight=3) # Left/Center section
@@ -142,27 +157,26 @@ class DashboardView(ctk.CTkFrame):
         self.home_view.grid_rowconfigure(0, weight=1)
 
         # --- LEFT/CENTER COLUMN ---
-        self.center_column = ctk.CTkFrame(self.home_view, fg_color="transparent")
+        self.center_column = ctk.CTkScrollableFrame(self.home_view, fg_color="transparent")
         self.center_column.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
         # Hero Welcome Banner
-        self.hero_banner = ctk.CTkFrame(self.center_column, fg_color=("white", "#1E1E2E"), corner_radius=10, height=130)
+        self.hero_banner = ctk.CTkFrame(self.center_column, fg_color=("white", "#1E1E2E"), corner_radius=10)
         self.hero_banner.pack(fill="x", pady=(0, 10))
-        self.hero_banner.pack_propagate(False)
 
         hero_text_box = ctk.CTkFrame(self.hero_banner, fg_color="transparent")
-        hero_text_box.pack(side="left", padx=20, pady=15)
+        hero_text_box.pack(side="left", fill="both", expand=True, padx=20, pady=15)
 
         self.lbl_hero_welcome = ctk.CTkLabel(
-            hero_text_box, text="Welcome back, Student!", font=("Poppins", 18, "bold"), text_color=("gray10", "#FFFFFF"), justify="left"
+            hero_text_box, text="Welcome back, Student!", font=("Poppins", 18, "bold"), text_color=("gray10", "#FFFFFF"), justify="left", wraplength=350
         )
         self.lbl_hero_welcome.pack(anchor="w")
 
         ctk.CTkLabel(
-            hero_text_box, text="Your goals are within reach. Let's keep learning!", font=("Poppins", 11), text_color=("gray50", "#AAAAAA"), justify="left"
+            hero_text_box, text="Your goals are within reach. Let's keep learning!", font=("Poppins", 11), text_color=("gray50", "#AAAAAA"), justify="left", wraplength=350
         ).pack(anchor="w", pady=(4, 0))
 
-        ctk.CTkLabel(self.hero_banner, text="🎓📚", font=("Poppins", 36)).pack(side="right", padx=25)
+        ctk.CTkLabel(self.hero_banner, text="🎓📚", font=("Poppins", 36)).pack(side="right", padx=25, pady=15)
 
         # Quick Action Cards Grid
         self.quick_actions_grid = ctk.CTkFrame(self.center_column, fg_color="transparent")
@@ -185,7 +199,7 @@ class DashboardView(ctk.CTkFrame):
         self.card_hours_val = self._create_stat_card(self.stats_container, "Study Hours", "0 hrs", "#8B5CF6", 3)
 
         # --- RIGHT COLUMN (Calendar, Upcoming Deadlines, Recent Activity) ---
-        self.right_column = ctk.CTkFrame(self.home_view, fg_color="transparent")
+        self.right_column = ctk.CTkScrollableFrame(self.home_view, fg_color="transparent")
         self.right_column.grid(row=0, column=1, sticky="nsew")
 
         # Mini Calendar Widget
@@ -193,42 +207,39 @@ class DashboardView(ctk.CTkFrame):
         self.mini_cal_card.pack(fill="x", pady=(0, 10))
 
         cal_header = ctk.CTkFrame(self.mini_cal_card, fg_color="transparent")
-        cal_header.pack(fill="x", padx=12, pady=(8, 2))
+        cal_header.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(cal_header, text="📅 Current Calendar", font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
 
         self.cal_grid = ctk.CTkFrame(self.mini_cal_card, fg_color="transparent")
-        self.cal_grid.pack(fill="x", padx=8, pady=(0, 8))
+        self.cal_grid.pack(fill="x", padx=8, pady=(0, 10))
         self.render_mini_calendar()
 
         # Task Notifications & Upcoming Deadlines Feed
-        self.notif_frame = ctk.CTkFrame(self.right_column, fg_color=("white", "#1E1E2E"), corner_radius=10, height=140)
+        self.notif_frame = ctk.CTkFrame(self.right_column, fg_color=("white", "#1E1E2E"), corner_radius=10)
         self.notif_frame.pack(fill="x", pady=(0, 10))
-        self.notif_frame.pack_propagate(False)
 
         up_head = ctk.CTkFrame(self.notif_frame, fg_color="transparent")
-        up_head.pack(fill="x", padx=12, pady=(8, 4))
+        up_head.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(up_head, text="🔔 Upcoming Deadlines", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
         ctk.CTkButton(up_head, text="View all", width=60, height=22, fg_color="transparent", text_color="#3B82F6", command=self.nav_schedule).pack(side="right")
 
-        self.scroll_notifications = ctk.CTkScrollableFrame(self.notif_frame, fg_color="transparent")
-        self.scroll_notifications.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self.scroll_notifications = ctk.CTkFrame(self.notif_frame, fg_color="transparent")
+        self.scroll_notifications.pack(fill="x", expand=True, padx=8, pady=(0, 10))
 
         # Recent Activity Feed
-        self.activity_frame = ctk.CTkFrame(self.right_column, fg_color=("white", "#1E1E2E"), corner_radius=10, height=120)
+        self.activity_frame = ctk.CTkFrame(self.right_column, fg_color=("white", "#1E1E2E"), corner_radius=10)
         self.activity_frame.pack(fill="x")
-        self.activity_frame.pack_propagate(False)
 
         act_head = ctk.CTkFrame(self.activity_frame, fg_color="transparent")
-        act_head.pack(fill="x", padx=12, pady=(8, 4))
+        act_head.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(act_head, text="⚡ Recent Activity", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
 
-        self.scroll_activity = ctk.CTkScrollableFrame(self.activity_frame, fg_color="transparent")
-        self.scroll_activity.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self.scroll_activity = ctk.CTkFrame(self.activity_frame, fg_color="transparent")
+        self.scroll_activity.pack(fill="x", expand=True, padx=8, pady=(0, 10))
 
         self.sub_views["home"] = self.home_view
 
         # 3B. Other Sub-Views
-        from ui.settings_view import SettingsViewFrame
         self.sub_views["notes"] = NotesDashboardView(self.workspace_container, self.controller)
         self.sub_views["profile"] = ProfileViewFrame(self.workspace_container, self.controller)
         self.sub_views["quizzes"] = QuizGeneView(self.workspace_container, self.controller)
@@ -239,20 +250,22 @@ class DashboardView(ctk.CTkFrame):
         # Display Home view by default
         self.show_sub_view("home")
 
-    def _create_stat_card(self, parent, title, initial_val, color, col_idx):
-        card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10, height=85)
-        card.grid(row=0, column=col_idx, sticky="nsew", padx=4)
-        card.pack_propagate(False)
+    def open_tutorial(self):
+        """Launches the onboarding tutorial modal."""
+        OnboardingTutorial(self, self.controller)
 
-        ctk.CTkLabel(card, text=title, font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=12, pady=(10, 0))
-        val_lbl = ctk.CTkLabel(card, text=initial_val, font=("Poppins", 16, "bold"), text_color=color)
-        val_lbl.pack(anchor="w", padx=12)
+    def _create_stat_card(self, parent, title, initial_val, color, col_idx):
+        card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10)
+        card.grid(row=0, column=col_idx, sticky="nsew", padx=4)
+
+        ctk.CTkLabel(card, text=title, font=("Poppins", 10), text_color=("gray50", "#AAAAAA"), wraplength=90).pack(anchor="w", padx=10, pady=(10, 0))
+        val_lbl = ctk.CTkLabel(card, text=initial_val, font=("Poppins", 15, "bold"), text_color=color)
+        val_lbl.pack(anchor="w", padx=10, pady=(0, 10))
         return val_lbl
 
     def _create_quick_action_card(self, parent, icon, title, subtitle, command_fn, col):
-        card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10, height=95)
+        card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10)
         card.grid(row=0, column=col, sticky="nsew", padx=4)
-        card.pack_propagate(False)
 
         ctk.CTkButton(
             card,
@@ -266,8 +279,8 @@ class DashboardView(ctk.CTkFrame):
             command=command_fn
         ).pack(anchor="w", padx=10, pady=(10, 2))
 
-        ctk.CTkLabel(card, text=title, font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=10)
-        ctk.CTkLabel(card, text=subtitle, font=("Poppins", 9), text_color=("gray50", "#8A8A9E")).pack(anchor="w", padx=10)
+        ctk.CTkLabel(card, text=title, font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF"), wraplength=90).pack(anchor="w", padx=10)
+        ctk.CTkLabel(card, text=subtitle, font=("Poppins", 9), text_color=("gray50", "#8A8A9E"), wraplength=90).pack(anchor="w", padx=10, pady=(0, 10))
 
     def render_mini_calendar(self):
         """Renders 7x5 month grid for mini calendar widget."""
@@ -288,8 +301,8 @@ class DashboardView(ctk.CTkFrame):
                         text_color=("gray10", "#FFFFFF") if is_active else ("gray40", "#A0A0B8"),
                         fg_color="#3B82F6" if is_active else "transparent",
                         corner_radius=4,
-                        width=18,
-                        height=16
+                        width=20,
+                        height=18
                     )
                     lbl.grid(row=row_idx, column=col_idx, padx=1, pady=1)
 

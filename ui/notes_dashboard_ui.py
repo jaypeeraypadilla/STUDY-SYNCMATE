@@ -5,6 +5,8 @@ from logic.my_notes import NotesManager
 
 
 class NotesDashboardView(ctk.CTkFrame):
+    """Notes Workspace supporting rich text formatting (bold, italic, headers, highlights), editing, file attachments, and subject-grouped viewing."""
+
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
@@ -23,36 +25,66 @@ class NotesDashboardView(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # LEFT FRAME: CREATE / EDIT NOTE FORM
+        # LEFT FRAME: CREATE / EDIT NOTE FORM (Scrollable for scaling)
         # =============================================================
-        self.form_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.form_frame = ctk.CTkScrollableFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.form_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         self.form_title_label = ctk.CTkLabel(
             self.form_frame, 
             text="Create New Study Note", 
             font=("Poppins", 18, "bold"), 
-            text_color="#FFFFFF"
+            text_color=("gray10", "#FFFFFF")
         )
         self.form_title_label.pack(anchor="w", padx=20, pady=(15, 10))
 
         # 1. Subject / Course Input
-        ctk.CTkLabel(self.form_frame, text="Subject / Course:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
-        self.entry_subject = ctk.CTkEntry(self.form_frame, placeholder_text="e.g., Computer Science, Math", height=35)
+        ctk.CTkLabel(self.form_frame, text="Subject / Course:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
+        self.entry_subject = ctk.CTkEntry(
+            self.form_frame, 
+            placeholder_text="e.g., Computer Science, Math", 
+            height=38,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF"),
+            placeholder_text_color=("gray50", "#8A8A9E")
+        )
         self.entry_subject.pack(fill="x", padx=20, pady=(0, 10))
 
         # 2. Title / Topic Input
-        ctk.CTkLabel(self.form_frame, text="Title / Topic:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
-        self.entry_title = ctk.CTkEntry(self.form_frame, placeholder_text="e.g., Data Structures & Algorithms", height=35)
+        ctk.CTkLabel(self.form_frame, text="Title / Topic:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
+        self.entry_title = ctk.CTkEntry(
+            self.form_frame, 
+            placeholder_text="e.g., Data Structures & Algorithms", 
+            height=38,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF"),
+            placeholder_text_color=("gray50", "#8A8A9E")
+        )
         self.entry_title.pack(fill="x", padx=20, pady=(0, 10))
 
-        # 3. Notes Content Textbox
-        ctk.CTkLabel(self.form_frame, text="Note Content:", font=("Poppins", 12)).pack(anchor="w", padx=20, pady=(5, 2))
-        self.textbox_content = ctk.CTkTextbox(self.form_frame, height=150)
+        # 3. Notes Content Textbox & Formatting Toolbar
+        ctk.CTkLabel(self.form_frame, text="Note Content:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
+        
+        # Formatting Toolbar Frame
+        self.toolbar_frame = ctk.CTkFrame(self.form_frame, fg_color=("gray85", "#2B2B3D"), corner_radius=6, height=36)
+        self.toolbar_frame.pack(fill="x", padx=20, pady=(0, 4))
+
+        # Formatting Buttons
+        ctk.CTkButton(self.toolbar_frame, text="<b> Bold", width=55, height=26, font=("Poppins", 11, "bold"), fg_color="#3B82F6", command=lambda: self.apply_formatting("**", "**")).pack(side="left", padx=4, pady=4)
+        ctk.CTkButton(self.toolbar_frame, text="<i> Italic", width=55, height=26, font=("Poppins", 11, "italic"), fg_color="#3B82F6", command=lambda: self.apply_formatting("*", "*")).pack(side="left", padx=4, pady=4)
+        ctk.CTkButton(self.toolbar_frame, text="📌 Header", width=70, height=26, font=("Poppins", 11, "bold"), fg_color="#8B5CF6", command=lambda: self.apply_formatting("# ", "")).pack(side="left", padx=4, pady=4)
+        ctk.CTkButton(self.toolbar_frame, text="🖍️ Highlight", width=80, height=26, font=("Poppins", 11, "bold"), fg_color="#F59E0B", command=lambda: self.apply_formatting("==", "==")).pack(side="left", padx=4, pady=4)
+
+        self.textbox_content = ctk.CTkTextbox(
+            self.form_frame, 
+            height=150,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF")
+        )
         self.textbox_content.pack(fill="x", padx=20, pady=(0, 10))
 
         # 4. Attachments Section
-        self.attachment_frame = ctk.CTkFrame(self.form_frame, fg_color="#2B2B3D", corner_radius=8)
+        self.attachment_frame = ctk.CTkFrame(self.form_frame, fg_color=("gray90", "#2B2B3D"), corner_radius=8)
         self.attachment_frame.pack(fill="x", padx=20, pady=5)
 
         self.btn_attach = ctk.CTkButton(
@@ -62,6 +94,7 @@ class NotesDashboardView(ctk.CTkFrame):
             fg_color="#3B82F6",
             hover_color="#2563EB",
             width=120,
+            height=32,
             command=self.select_files
         )
         self.btn_attach.pack(side="left", padx=10, pady=8)
@@ -70,45 +103,43 @@ class NotesDashboardView(ctk.CTkFrame):
             self.attachment_frame, 
             text="No files attached", 
             font=("Poppins", 11),
-            text_color="#AAAAAA"
+            text_color=("gray50", "#AAAAAA")
         )
         self.lbl_attachments_count.pack(side="left", padx=5)
 
-        # 5. Form Action Buttons (Save with Attachments, Save Text Only, Reset)
+        # 5. Form Action Buttons
         self.actions_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        self.actions_frame.pack(fill="x", padx=20, pady=(10, 15))
+        self.actions_frame.pack(fill="x", padx=20, pady=(15, 20))
 
-        # Save/Update Button (Includes attachments if selected/existing)
         self.btn_save = ctk.CTkButton(
             self.actions_frame,
             text="💾 Save Note",
             font=("Poppins", 13, "bold"),
             fg_color="#10B981",
             hover_color="#059669",
-            height=36,
+            height=40,
             command=self.save_note
         )
-        self.btn_save.pack(fill="x", pady=(0, 5))
+        self.btn_save.pack(fill="x", pady=(0, 8))
 
-        # NEW: Save Text Only Button (Ignores attachments)
         self.btn_save_text_only = ctk.CTkButton(
             self.actions_frame,
             text="📝 Save Text Note Only",
             font=("Poppins", 13, "bold"),
             fg_color="#8B5CF6",
             hover_color="#7C3AED",
-            height=36,
+            height=40,
             command=self.save_text_note_only
         )
-        self.btn_save_text_only.pack(fill="x", pady=(0, 5))
+        self.btn_save_text_only.pack(fill="x", pady=(0, 8))
 
         self.btn_clear = ctk.CTkButton(
             self.actions_frame,
             text="Reset Form",
             font=("Poppins", 11, "bold"),
-            fg_color="#4B5563",
-            hover_color="#374151",
-            height=32,
+            fg_color=("gray70", "#4B5563"),
+            hover_color=("gray60", "#374151"),
+            height=36,
             command=self.clear_form
         )
         self.btn_clear.pack(fill="x")
@@ -116,14 +147,14 @@ class NotesDashboardView(ctk.CTkFrame):
         # =============================================================
         # RIGHT FRAME: SAVED NOTES GROUPED BY SUBJECT
         # =============================================================
-        self.notes_list_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.notes_list_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.notes_list_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
         ctk.CTkLabel(
             self.notes_list_frame, 
             text="My Saved Notes (By Subject)", 
             font=("Poppins", 18, "bold"), 
-            text_color="#FFFFFF"
+            text_color=("gray10", "#FFFFFF")
         ).pack(anchor="w", padx=20, pady=(15, 10))
 
         self.scroll_notes = ctk.CTkScrollableFrame(self.notes_list_frame, fg_color="transparent")
@@ -132,6 +163,16 @@ class NotesDashboardView(ctk.CTkFrame):
     # =============================================================
     # EVENT HANDLERS & LOGIC INTEGRATION
     # =============================================================
+
+    def apply_formatting(self, prefix: str, suffix: str):
+        """Wraps currently selected text in the textbox with formatting tags."""
+        try:
+            selected_text = self.textbox_content.get("sel.first", "sel.last")
+            self.textbox_content.delete("sel.first", "sel.last")
+            self.textbox_content.insert("insert", f"{prefix}{selected_text}{suffix}")
+        except tk.TclError:
+            # If no text is selected, just insert the tags at the cursor
+            self.textbox_content.insert("insert", f"{prefix}{suffix}")
 
     def _get_user_id(self) -> int:
         if hasattr(self.controller, "current_user") and self.controller.current_user:
@@ -177,7 +218,6 @@ class NotesDashboardView(ctk.CTkFrame):
             messagebox.showwarning("Missing Title", "Please enter a title or topic for your note.")
             return
 
-        # Determine attachments payload based on mode
         existing_atts = self.current_existing_attachments if include_attachments else []
         new_atts = self.selected_file_paths if include_attachments else []
 
@@ -212,7 +252,6 @@ class NotesDashboardView(ctk.CTkFrame):
         self.current_existing_attachments = []
         self.form_title_label.configure(text="Create New Study Note")
         
-        # Reset buttons back to default
         self.btn_save.configure(text="💾 Save Note", fg_color="#10B981", hover_color="#059669")
         self.btn_save_text_only.configure(text="📝 Save Text Note Only")
         
@@ -220,7 +259,7 @@ class NotesDashboardView(ctk.CTkFrame):
         self.entry_title.delete(0, "end")
         self.textbox_content.delete("1.0", "end")
         self.selected_file_paths = []
-        self.lbl_attachments_count.configure(text="No files attached", text_color="#AAAAAA")
+        self.lbl_attachments_count.configure(text="No files attached", text_color=("gray50", "#AAAAAA"))
 
     def load_user_notes(self):
         """Fetches and displays saved notes grouped per Subject with Topic Dropdowns."""
@@ -231,7 +270,12 @@ class NotesDashboardView(ctk.CTkFrame):
         notes = self.notes_logic.get_user_notes(user_id)
 
         if not notes:
-            ctk.CTkLabel(self.scroll_notes, text="No notes saved yet.", text_color="#888888").pack(pady=20)
+            ctk.CTkLabel(
+                self.scroll_notes, 
+                text="No notes saved yet.", 
+                text_color=("gray50", "#888888"),
+                font=("Poppins", 12)
+            ).pack(pady=20)
             return
 
         grouped_notes = {}
@@ -242,38 +286,39 @@ class NotesDashboardView(ctk.CTkFrame):
             grouped_notes[subj].append(note)
 
         for subject_name, subject_notes in grouped_notes.items():
-            subject_card = ctk.CTkFrame(self.scroll_notes, fg_color="#2B2B3D", corner_radius=10)
+            subject_card = ctk.CTkFrame(self.scroll_notes, fg_color=("gray90", "#2B2B3D"), corner_radius=10)
             subject_card.pack(fill="x", pady=8, padx=5)
 
             ctk.CTkLabel(
                 subject_card, 
                 text=f"📚 {subject_name} ({len(subject_notes)} Topic{'s' if len(subject_notes) > 1 else ''})", 
                 font=("Poppins", 15, "bold"), 
-                text_color="#3B82F6"
+                text_color="#3B82F6",
+                wraplength=340
             ).pack(anchor="w", padx=15, pady=(12, 4))
 
             ctk.CTkLabel(
                 subject_card, 
                 text="Select Topic / Title:", 
                 font=("Poppins", 11), 
-                text_color="#AAAAAA"
+                text_color=("gray50", "#AAAAAA")
             ).pack(anchor="w", padx=15, pady=(0, 2))
 
             topic_titles = [n["title"] for n in subject_notes]
 
-            preview_frame = ctk.CTkFrame(subject_card, fg_color="#1E1E2E", corner_radius=8)
+            preview_frame = ctk.CTkFrame(subject_card, fg_color=("gray95", "#1E1E2E"), corner_radius=8)
             
-            lbl_title = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 14, "bold"), text_color="#FFFFFF", anchor="w")
+            lbl_title = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 14, "bold"), text_color=("gray10", "#FFFFFF"), anchor="w", wraplength=320)
             lbl_title.pack(fill="x", padx=12, pady=(10, 2))
 
             lbl_content = ctk.CTkLabel(
                 preview_frame, 
                 text="", 
                 font=("Poppins", 11), 
-                text_color="#DDDDDD", 
+                text_color=("gray30", "#DDDDDD"), 
                 anchor="w", 
                 justify="left", 
-                wraplength=340
+                wraplength=320
             )
             lbl_content.pack(fill="x", padx=12, pady=4)
 
@@ -317,13 +362,13 @@ class NotesDashboardView(ctk.CTkFrame):
 
             btn_edit_topic = ctk.CTkButton(
                 btn_frame, text="✏️ Edit", font=("Poppins", 11, "bold"), 
-                width=70, height=28, fg_color="#3B82F6", command=edit_selected_note
+                width=70, height=32, fg_color="#3B82F6", command=edit_selected_note
             )
             btn_edit_topic.pack(side="left", padx=(0, 5))
 
             btn_delete_topic = ctk.CTkButton(
                 btn_frame, text="🗑️ Delete", font=("Poppins", 11, "bold"), 
-                width=75, height=28, fg_color="#EF4444", hover_color="#DC2626", command=delete_selected_note
+                width=75, height=32, fg_color="#EF4444", hover_color="#DC2626", command=delete_selected_note
             )
             btn_delete_topic.pack(side="left")
 
@@ -354,14 +399,15 @@ class NotesDashboardView(ctk.CTkFrame):
                 subject_card,
                 values=topic_titles,
                 command=on_select_callback,
-                fg_color="#1E1E2E",
+                fg_color=("white", "#1E1E2E"),
+                text_color=("gray10", "#FFFFFF"),
                 button_color="#3B82F6",
                 button_hover_color="#2563EB",
                 font=("Poppins", 12),
                 dropdown_font=("Poppins", 11),
-                height=35
+                height=38
             )
-            topic_dropdown.pack(fill="x", padx=15, pady=(0, 10))
+            topic_dropdown.pack(fill="x", padx=15, pady=(0, 12))
 
             if topic_titles:
                 topic_dropdown.set(topic_titles[0])

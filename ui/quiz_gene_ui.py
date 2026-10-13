@@ -56,23 +56,24 @@ class QuizGeneView(ctk.CTkFrame):
             self.main_card, 
             text="Select a subject and test mode generated from your saved notes:", 
             font=("Poppins", 12), 
-            text_color=("gray50", "#AAAAAA")
+            text_color=("gray30", "#AAAAAA")
         ).pack(anchor="w", padx=25, pady=(0, 15))
 
         user_id = self._get_user_id()
         subjects = self.quiz_logic.get_available_subjects(user_id)
 
-        ctk.CTkLabel(self.main_card, text="Subject:", font=("Poppins", 12, "bold"), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
+        ctk.CTkLabel(self.main_card, text="Subject:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
         self.subject_dropdown = ctk.CTkOptionMenu(
             self.main_card, 
             values=subjects if subjects else ["No subjects available"],
             height=38,
             fg_color=("gray85", "#2B2B3D"),
-            button_color="#3B82F6"
+            button_color="#3B82F6",
+            text_color=("gray10", "#FFFFFF")
         )
         self.subject_dropdown.pack(fill="x", padx=25, pady=(0, 20))
 
-        ctk.CTkLabel(self.main_card, text="Study Mode:", font=("Poppins", 12, "bold"), text_color=("gray20", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
+        ctk.CTkLabel(self.main_card, text="Study Mode:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
         self.mode_dropdown = ctk.CTkOptionMenu(
             self.main_card, 
             values=[
@@ -84,7 +85,8 @@ class QuizGeneView(ctk.CTkFrame):
             ],
             height=38,
             fg_color=("gray85", "#2B2B3D"),
-            button_color="#10B981"
+            button_color="#10B981",
+            text_color=("gray10", "#FFFFFF")
         )
         self.mode_dropdown.pack(fill="x", padx=25, pady=(0, 30))
 
@@ -164,7 +166,7 @@ class QuizGeneView(ctk.CTkFrame):
             self.card_box, 
             text=card_data["question"] if not self.showing_answer else "Answer / Summary:", 
             font=("Poppins", 12, "bold"), 
-            text_color="#10B981"
+            text_color=("#059669", "#10B981")
         ).pack(anchor="w", padx=20, pady=(20, 5))
 
         ctk.CTkLabel(
@@ -223,7 +225,7 @@ class QuizGeneView(ctk.CTkFrame):
         ).pack(side="left")
 
         ctk.CTkLabel(
-            header_frame, text=f"Subject: {subject}", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")
+            header_frame, text=f"Subject: {subject}", font=("Poppins", 11), text_color=("gray30", "#AAAAAA")
         ).pack(side="right")
 
         # Question Prompt
@@ -264,7 +266,7 @@ class QuizGeneView(ctk.CTkFrame):
             for idx in range(items_count):
                 row_f = ctk.CTkFrame(scroll_enum, fg_color="transparent")
                 row_f.pack(fill="x", pady=4)
-                ctk.CTkLabel(row_f, text=f"Item {idx + 1}:", font=("Poppins", 11, "bold"), width=65).pack(side="left")
+                ctk.CTkLabel(row_f, text=f"Item {idx + 1}:", font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF"), width=65).pack(side="left")
                 
                 v = ctk.StringVar(value="")
                 self.enum_entry_vars.append(v)
