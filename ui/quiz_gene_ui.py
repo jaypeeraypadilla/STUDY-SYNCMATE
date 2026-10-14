@@ -4,7 +4,7 @@ from logic.quiz_generator import QuizGenerator
 
 
 class QuizGeneView(ctk.CTkFrame):
-    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, and Enumeration."""
+    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, and Enumeration via Gemini AI."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -54,7 +54,7 @@ class QuizGeneView(ctk.CTkFrame):
 
         ctk.CTkLabel(
             self.main_card, 
-            text="Select a subject and test mode generated from your saved notes:", 
+            text="Select a subject and test mode generated from your saved notes using Gemini AI:", 
             font=("Poppins", 12), 
             text_color=("gray30", "#AAAAAA")
         ).pack(anchor="w", padx=25, pady=(0, 15))
@@ -92,7 +92,7 @@ class QuizGeneView(ctk.CTkFrame):
 
         self.btn_start = ctk.CTkButton(
             self.main_card,
-            text="🚀 Start Session",
+            text="🚀 Start AI Session",
             font=("Poppins", 14, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
@@ -100,6 +100,27 @@ class QuizGeneView(ctk.CTkFrame):
             command=self.start_session
         )
         self.btn_start.pack(fill="x", padx=25, pady=10)
+
+    def show_loading_state(self):
+        """Displays loading UI while Gemini AI analyzes notes."""
+        self.clear_container()
+        load_box = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        load_box.place(relx=0.5, rely=0.5, anchor="center")
+
+        ctk.CTkLabel(load_box, text="⚡", font=("Poppins", 48)).pack(pady=(0, 10))
+        ctk.CTkLabel(
+            load_box, 
+            text="Gemini AI is analyzing your notes...", 
+            font=("Poppins", 16, "bold"), 
+            text_color="#3B82F6"
+        ).pack(pady=(0, 5))
+        ctk.CTkLabel(
+            load_box, 
+            text="Generating customized study content and questions...", 
+            font=("Poppins", 11), 
+            text_color=("gray50", "#AAAAAA")
+        ).pack()
+        self.update_idletasks()
 
     def start_session(self):
         user_id = self._get_user_id()
@@ -110,10 +131,14 @@ class QuizGeneView(ctk.CTkFrame):
             messagebox.showwarning("Warning", "Please select a valid subject with saved notes.")
             return
 
+        # Show loading feedback while AI generates content
+        self.show_loading_state()
+
         if "Flashcards" in mode:
             self.active_flashcards = self.quiz_logic.generate_flashcards(user_id, subject)
             if not self.active_flashcards:
                 messagebox.showinfo("Info", f"No notes found under subject '{subject}'.")
+                self.build_setup_screen()
                 return
             self.current_flashcard_idx = 0
             self.showing_answer = False
@@ -130,6 +155,7 @@ class QuizGeneView(ctk.CTkFrame):
 
             if not self.active_quiz_questions:
                 messagebox.showinfo("Info", f"Not enough structured notes available to generate '{mode}' questions for '{subject}'.")
+                self.build_setup_screen()
                 return
 
             self.current_quiz_idx = 0
@@ -307,9 +333,8 @@ class QuizGeneView(ctk.CTkFrame):
             user_items = [v.get().strip().lower() for v in self.enum_entry_vars if v.get().strip()]
             correct_items = [item.strip().lower() for item in q_data["items"]]
             
-            # Count how many items match
             matched = sum(1 for ui in user_items if any(ci in ui or ui in ci for ci in correct_items))
-            if matched >= max(1, len(correct_items) // 2):  # Pass if at least half are correct
+            if matched >= max(1, len(correct_items) // 2):  
                 is_correct = True
 
         if is_correct:

@@ -26,7 +26,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             text_color=("gray10", "#FFFFFF")
         ).pack(anchor="w", padx=20, pady=(15, 15))
 
-        # 1. Theme Appearance Mode (Dark / Light / System)
+        # 1. Theme Appearance Mode (Dark / Light / System / Sepia / Warm)
         ctk.CTkLabel(
             self.appearance_frame, 
             text="Interface Theme Mode:", 
@@ -36,14 +36,14 @@ class SettingsViewFrame(ctk.CTkFrame):
         
         self.combo_theme = ctk.CTkOptionMenu(
             self.appearance_frame,
-            values=["Dark", "Light", "System"],
+            values=["Dark", "Light", "System", "Sepia", "Warm"],
             command=self.change_appearance_mode,
             height=35,
             fg_color=("gray85", "#2B2B3D"),
             button_color="#3B82F6",
             text_color=("gray10", "#FFFFFF")
         )
-        self.combo_theme.set(ctk.get_appearance_mode())
+        self.combo_theme.set("Dark")
         self.combo_theme.pack(fill="x", padx=20, pady=(0, 15))
 
         # 2. Font Size / UI Scaling Modifier
@@ -69,10 +69,10 @@ class SettingsViewFrame(ctk.CTkFrame):
         # Divider line
         ctk.CTkFrame(self.appearance_frame, height=2, fg_color=("gray80", "#2B2B3D")).pack(fill="x", padx=20, pady=10)
 
-        # Quick Save Note preference info
+        # Quick info note
         ctk.CTkLabel(
             self.appearance_frame, 
-            text="💡 Note: Theme changes and font scaling take effect instantly across the application.", 
+            text="💡 Note: Custom modes like Sepia and Warm optimize background tones for reduced eye strain during long study sessions.", 
             font=("Poppins", 10, "italic"), 
             text_color=("gray30", "#AAAAAA"),
             justify="left",
@@ -85,7 +85,6 @@ class SettingsViewFrame(ctk.CTkFrame):
         self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E1E"))
         self.info_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
-        # Tabs or Sections for About & Help
         self.info_tabview = ctk.CTkTabview(
             self.info_frame, 
             fg_color=("gray90", "#2B2B3D"), 
@@ -99,7 +98,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.1.4", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.1.5", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
@@ -135,8 +134,19 @@ class SettingsViewFrame(ctk.CTkFrame):
     # =============================================================
 
     def change_appearance_mode(self, new_mode: str):
-        """Switches global CustomTkinter appearance mode."""
-        ctk.set_appearance_mode(new_mode)
+        """Switches appearance mode or applies custom color tones for Sepia / Warm mode."""
+        if new_mode in ["Dark", "Light", "System"]:
+            ctk.set_appearance_mode(new_mode)
+        elif new_mode == "Sepia":
+            # Switch underlying mode to Light and customize palettes for a warm paper/sepia tone (#F4ECD8)
+            ctk.set_appearance_mode("Light")
+            if hasattr(self.controller, "apply_custom_theme"):
+                self.controller.apply_custom_theme("sepia")
+        elif new_mode == "Warm":
+            # Switch underlying mode to Dark or Light with warm amber/orange highlights
+            ctk.set_appearance_mode("Dark")
+            if hasattr(self.controller, "apply_custom_theme"):
+                self.controller.apply_custom_theme("warm")
 
     def change_ui_scaling(self, scale_str: str):
         """Changes global font and widget scaling size."""

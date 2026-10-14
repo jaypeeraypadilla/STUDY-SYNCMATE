@@ -8,10 +8,11 @@ if BASE_DIR not in sys.path:
   sys.path.insert(0, BASE_DIR)
 
 from logic.user_auth import AuthManager
-from ui.dashboard_view import DashboardView
+from ui.welcome_view import WelcomeView
 from ui.login_view import LoginView
-from ui.recovery_ui import RecoveryView
 from ui.signup_view import SignUpView
+from ui.recovery_ui import RecoveryView
+from ui.dashboard_view import DashboardView
 
 
 class StudySyncMateApp(tk.Tk):
@@ -30,7 +31,7 @@ class StudySyncMateApp(tk.Tk):
     self.auth_manager = AuthManager()
     self.current_user = None
 
-    # Container Frame (Match window background as standard Tkinter lacks transparent frames)
+    # Container Frame
     self.container = tk.Frame(self, bg="#1E1E1E")
     self.container.pack(fill="both", expand=True)
 
@@ -39,11 +40,13 @@ class StudySyncMateApp(tk.Tk):
 
     self.frames = {}
     self.init_views()
-    self.show_frame("LoginView")
+    
+    # Launch the Welcome Screen first!
+    self.show_frame("WelcomeView")
 
   def init_views(self):
-    """Instantiates all UI views."""
-    for ViewClass in (LoginView, SignUpView, RecoveryView):
+    """Instantiates all UI views including the new WelcomeView."""
+    for ViewClass in (WelcomeView, LoginView, SignUpView, RecoveryView):
       page_name = ViewClass.__name__
       frame = ViewClass(parent=self.container, controller=self)
       self.frames[page_name] = frame
@@ -71,6 +74,7 @@ class StudySyncMateApp(tk.Tk):
 
   def logout(self):
     self.current_user = None
+    # Returns to LoginView upon logout
     self.show_frame("LoginView")
 
 

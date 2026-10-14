@@ -5,173 +5,204 @@ from logic.my_notes import NotesManager
 
 
 class NotesDashboardView(ctk.CTkFrame):
-    """Notes Workspace supporting rich text formatting (bold, italic, headers, highlights), editing, file attachments, and subject-grouped viewing."""
+    """Clean 3-column Master-Detail-Preview Notes Workspace with synchronized state management."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
         self.notes_logic = NotesManager()
 
-        # Temporary list to store newly selected attached file paths
+        # State tracking
         self.selected_file_paths = []
-        # Stores currently loaded note ID for updating/editing
         self.editing_note_id = None
-        # Stores existing attachments when editing so they aren't lost
         self.current_existing_attachments = []
+        self.active_subject_filter = "ALL"
+        self.search_query = ""
+        self.all_user_notes = []
+        self.pill_buttons = {}
+        self.active_selected_note = None
 
-        # Configure grid layout (2 columns: left for form, right for saved notes per subject)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        # Configure 3-Column Grid Layout
+        self.grid_columnconfigure(0, weight=1)  # Left: Notes Explorer List
+        self.grid_columnconfigure(1, weight=1)  # Middle: Editor Form
+        self.grid_columnconfigure(2, weight=1)  # Right: Live Preview Pane
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # LEFT FRAME: CREATE / EDIT NOTE FORM (Scrollable for scaling)
+        # COLUMN 1: NOTES EXPLORER (Search, Pills, Note Cards)
         # =============================================================
-        self.form_frame = ctk.CTkScrollableFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
-        self.form_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.explorer_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
+        self.explorer_frame.grid(row=0, column=0, sticky="nsew", padx=(10, 5), pady=10)
+        self.explorer_frame.grid_rowconfigure(3, weight=1)
+        self.explorer_frame.grid_columnconfigure(0, weight=1)
 
-        self.form_title_label = ctk.CTkLabel(
-            self.form_frame, 
-            text="Create New Study Note", 
-            font=("Poppins", 18, "bold"), 
-            text_color=("gray10", "#FFFFFF")
-        )
-        self.form_title_label.pack(anchor="w", padx=20, pady=(15, 10))
+        search_row = ctk.CTkFrame(self.explorer_frame, fg_color="transparent")
+        search_row.pack(fill="x", padx=12, pady=(15, 10))
 
-        # 1. Subject / Course Input
-        ctk.CTkLabel(self.form_frame, text="Subject / Course:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
-        self.entry_subject = ctk.CTkEntry(
-            self.form_frame, 
-            placeholder_text="e.g., Computer Science, Math", 
-            height=38,
-            fg_color=("gray90", "#2B2B3D"),
-            text_color=("gray10", "#FFFFFF"),
-            placeholder_text_color=("gray50", "#8A8A9E")
-        )
-        self.entry_subject.pack(fill="x", padx=20, pady=(0, 10))
-
-        # 2. Title / Topic Input
-        ctk.CTkLabel(self.form_frame, text="Title / Topic:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
-        self.entry_title = ctk.CTkEntry(
-            self.form_frame, 
-            placeholder_text="e.g., Data Structures & Algorithms", 
-            height=38,
-            fg_color=("gray90", "#2B2B3D"),
-            text_color=("gray10", "#FFFFFF"),
-            placeholder_text_color=("gray50", "#8A8A9E")
-        )
-        self.entry_title.pack(fill="x", padx=20, pady=(0, 10))
-
-        # 3. Notes Content Textbox & Formatting Toolbar
-        ctk.CTkLabel(self.form_frame, text="Note Content:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=20, pady=(5, 2))
-        
-        # Formatting Toolbar Frame
-        self.toolbar_frame = ctk.CTkFrame(self.form_frame, fg_color=("gray85", "#2B2B3D"), corner_radius=6, height=36)
-        self.toolbar_frame.pack(fill="x", padx=20, pady=(0, 4))
-
-        # Formatting Buttons
-        ctk.CTkButton(self.toolbar_frame, text="<b> Bold", width=55, height=26, font=("Poppins", 11, "bold"), fg_color="#3B82F6", command=lambda: self.apply_formatting("**", "**")).pack(side="left", padx=4, pady=4)
-        ctk.CTkButton(self.toolbar_frame, text="<i> Italic", width=55, height=26, font=("Poppins", 11, "italic"), fg_color="#3B82F6", command=lambda: self.apply_formatting("*", "*")).pack(side="left", padx=4, pady=4)
-        ctk.CTkButton(self.toolbar_frame, text="📌 Header", width=70, height=26, font=("Poppins", 11, "bold"), fg_color="#8B5CF6", command=lambda: self.apply_formatting("# ", "")).pack(side="left", padx=4, pady=4)
-        ctk.CTkButton(self.toolbar_frame, text="🖍️ Highlight", width=80, height=26, font=("Poppins", 11, "bold"), fg_color="#F59E0B", command=lambda: self.apply_formatting("==", "==")).pack(side="left", padx=4, pady=4)
-
-        self.textbox_content = ctk.CTkTextbox(
-            self.form_frame, 
-            height=150,
+        self.entry_search = ctk.CTkEntry(
+            search_row, 
+            placeholder_text="🔍 Search Notes...", 
+            height=34,
             fg_color=("gray90", "#2B2B3D"),
             text_color=("gray10", "#FFFFFF")
         )
-        self.textbox_content.pack(fill="x", padx=20, pady=(0, 10))
+        self.entry_search.pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self.entry_search.bind("<KeyRelease>", self.on_search_change)
 
-        # 4. Attachments Section
-        self.attachment_frame = ctk.CTkFrame(self.form_frame, fg_color=("gray90", "#2B2B3D"), corner_radius=8)
-        self.attachment_frame.pack(fill="x", padx=20, pady=5)
-
-        self.btn_attach = ctk.CTkButton(
-            self.attachment_frame,
-            text="📎 Upload Media",
+        ctk.CTkButton(
+            search_row,
+            text="+ New",
             font=("Poppins", 11, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
-            width=120,
-            height=32,
-            command=self.select_files
-        )
-        self.btn_attach.pack(side="left", padx=10, pady=8)
+            width=70,
+            height=34,
+            command=self.clear_form
+        ).pack(side="right")
 
-        self.lbl_attachments_count = ctk.CTkLabel(
-            self.attachment_frame, 
-            text="No files attached", 
-            font=("Poppins", 11),
-            text_color=("gray50", "#AAAAAA")
-        )
-        self.lbl_attachments_count.pack(side="left", padx=5)
+        self.pills_frame = ctk.CTkScrollableFrame(self.explorer_frame, orientation="horizontal", fg_color="transparent", height=42)
+        self.pills_frame.pack(fill="x", padx=12, pady=(0, 10))
 
-        # 5. Form Action Buttons
-        self.actions_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        self.actions_frame.pack(fill="x", padx=20, pady=(15, 20))
+        self.scroll_notes = ctk.CTkScrollableFrame(self.explorer_frame, fg_color="transparent")
+        self.scroll_notes.pack(fill="both", expand=True, padx=8, pady=(0, 10))
+
+        # =============================================================
+        # COLUMN 2: EDITOR WORKSPACE (Form Inputs & Toolbar)
+        # =============================================================
+        self.editor_frame = ctk.CTkScrollableFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
+        self.editor_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=10)
+
+        editor_top_bar = ctk.CTkFrame(self.editor_frame, fg_color="transparent")
+        editor_top_bar.pack(fill="x", padx=15, pady=(15, 10))
+
+        self.form_title_label = ctk.CTkLabel(
+            editor_top_bar, 
+            text="✏️ Create New Note", 
+            font=("Poppins", 15, "bold"), 
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.form_title_label.pack(side="left")
 
         self.btn_save = ctk.CTkButton(
-            self.actions_frame,
-            text="💾 Save Note",
-            font=("Poppins", 13, "bold"),
+            editor_top_bar,
+            text="SAVE",
+            font=("Poppins", 11, "bold"),
             fg_color="#10B981",
             hover_color="#059669",
-            height=40,
+            width=65,
+            height=30,
             command=self.save_note
         )
-        self.btn_save.pack(fill="x", pady=(0, 8))
+        self.btn_save.pack(side="right")
 
-        self.btn_save_text_only = ctk.CTkButton(
-            self.actions_frame,
-            text="📝 Save Text Note Only",
-            font=("Poppins", 13, "bold"),
-            fg_color="#8B5CF6",
-            hover_color="#7C3AED",
-            height=40,
-            command=self.save_text_note_only
+        ctk.CTkLabel(self.editor_frame, text="SUBJECT", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
+        self.entry_subject = ctk.CTkEntry(
+            self.editor_frame, 
+            placeholder_text="e.g., ITE 260", 
+            height=34,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF")
         )
-        self.btn_save_text_only.pack(fill="x", pady=(0, 8))
+        self.entry_subject.pack(fill="x", padx=15, pady=(0, 10))
 
-        self.btn_clear = ctk.CTkButton(
-            self.actions_frame,
-            text="Reset Form",
-            font=("Poppins", 11, "bold"),
-            fg_color=("gray70", "#4B5563"),
-            hover_color=("gray60", "#374151"),
-            height=36,
-            command=self.clear_form
+        ctk.CTkLabel(self.editor_frame, text="TITLE / TOPIC", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
+        self.entry_title = ctk.CTkEntry(
+            self.editor_frame, 
+            placeholder_text="e.g., Arithmetic Operator", 
+            height=34,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF")
         )
-        self.btn_clear.pack(fill="x")
+        self.entry_title.pack(fill="x", padx=15, pady=(0, 10))
+
+        ctk.CTkLabel(self.editor_frame, text="NOTE CONTENT", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
+        
+        toolbar = ctk.CTkFrame(self.editor_frame, fg_color=("gray85", "#2B2B3D"), corner_radius=6, height=32)
+        toolbar.pack(fill="x", padx=15, pady=(0, 4))
+
+        ctk.CTkButton(toolbar, text="B", width=28, height=22, font=("Poppins", 10, "bold"), fg_color="#3B82F6", command=lambda: self.apply_formatting("**", "**")).pack(side="left", padx=2, pady=4)
+        ctk.CTkButton(toolbar, text="I", width=28, height=22, font=("Poppins", 10, "italic"), fg_color="#3B82F6", command=lambda: self.apply_formatting("*", "*")).pack(side="left", padx=2, pady=4)
+        ctk.CTkButton(toolbar, text="U", width=28, height=22, font=("Poppins", 10, "underline"), fg_color="#3B82F6", command=lambda: self.apply_formatting("__", "__")).pack(side="left", padx=2, pady=4)
+        ctk.CTkButton(toolbar, text="A⁺", width=28, height=22, font=("Poppins", 9, "bold"), fg_color="#8B5CF6", command=lambda: self.apply_formatting("# ", "")).pack(side="left", padx=2, pady=4)
+        ctk.CTkButton(toolbar, text="📋", width=28, height=22, font=("Poppins", 9), fg_color="#F59E0B", command=lambda: self.apply_formatting("- ", "")).pack(side="left", padx=2, pady=4)
+
+        self.textbox_content = ctk.CTkTextbox(
+            self.editor_frame, 
+            height=130,
+            fg_color=("gray90", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.textbox_content.pack(fill="x", padx=15, pady=(0, 10))
+
+        att_box = ctk.CTkFrame(self.editor_frame, fg_color=("gray90", "#2B2B3D"), corner_radius=8)
+        att_box.pack(fill="x", padx=15, pady=5)
+
+        ctk.CTkButton(
+            att_box, text="📎 Attach", font=("Poppins", 10, "bold"), fg_color="#3B82F6", width=90, height=28, command=self.select_files
+        ).pack(side="left", padx=8, pady=6)
+
+        self.lbl_attachments_count = ctk.CTkLabel(att_box, text="No files attached", font=("Poppins", 9), text_color=("gray50", "#AAAAAA"))
+        self.lbl_attachments_count.pack(side="left", padx=4)
+
+        ctk.CTkButton(
+            self.editor_frame, text="Reset Form", font=("Poppins", 10), fg_color=("gray70", "#4B5563"), height=30, command=self.clear_form
+        ).pack(fill="x", padx=15, pady=12)
 
         # =============================================================
-        # RIGHT FRAME: SAVED NOTES GROUPED BY SUBJECT
+        # COLUMN 3: LIVE PREVIEW PANEL (Right Pane)
         # =============================================================
-        self.notes_list_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
-        self.notes_list_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.preview_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
+        self.preview_frame.grid(row=0, column=2, sticky="nsew", padx=(5, 10), pady=10)
+        self.preview_frame.grid_rowconfigure(2, weight=1)
+        self.preview_frame.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            self.notes_list_frame, 
-            text="My Saved Notes (By Subject)", 
-            font=("Poppins", 18, "bold"), 
+            self.preview_frame, 
+            text="👁️ Live Preview", 
+            font=("Poppins", 15, "bold"), 
             text_color=("gray10", "#FFFFFF")
-        ).pack(anchor="w", padx=20, pady=(15, 10))
+        ).pack(anchor="w", padx=15, pady=(15, 10))
 
-        self.scroll_notes = ctk.CTkScrollableFrame(self.notes_list_frame, fg_color="transparent")
-        self.scroll_notes.pack(fill="both", expand=True, padx=10, pady=10)
+        self.preview_card = ctk.CTkFrame(self.preview_frame, fg_color=("gray95", "#2B2B3D"), corner_radius=8)
+        self.preview_card.pack(fill="both", expand=True, padx=12, pady=(0, 15))
+
+        self.preview_meta_label = ctk.CTkLabel(
+            self.preview_card, 
+            text="SUBJECT • DATE", 
+            font=("Poppins", 10, "bold"), 
+            text_color="#10B981"
+        )
+        self.preview_meta_label.pack(anchor="w", padx=15, pady=(12, 2))
+
+        self.preview_title_label = ctk.CTkLabel(
+            self.preview_card, 
+            text="Select a note to preview", 
+            font=("Poppins", 14, "bold"), 
+            text_color=("gray10", "#FFFFFF"),
+            anchor="w",
+            wraplength=260
+        )
+        self.preview_title_label.pack(anchor="w", padx=15, pady=(0, 8))
+
+        self.preview_content_textbox = ctk.CTkTextbox(
+            self.preview_card,
+            fg_color="transparent",
+            text_color=("gray20", "#E0E0E0"),
+            font=("Poppins", 11)
+        )
+        self.preview_content_textbox.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.preview_content_textbox.configure(state="disabled")
 
     # =============================================================
-    # EVENT HANDLERS & LOGIC INTEGRATION
+    # LOGIC & EVENT HANDLERS
     # =============================================================
 
     def apply_formatting(self, prefix: str, suffix: str):
-        """Wraps currently selected text in the textbox with formatting tags."""
         try:
-            selected_text = self.textbox_content.get("sel.first", "sel.last")
+            selected = self.textbox_content.get("sel.first", "sel.last")
             self.textbox_content.delete("sel.first", "sel.last")
-            self.textbox_content.insert("insert", f"{prefix}{selected_text}{suffix}")
-        except tk.TclError:
-            # If no text is selected, just insert the tags at the cursor
+            self.textbox_content.insert("insert", f"{prefix}{selected}{suffix}")
+        except Exception:
             self.textbox_content.insert("insert", f"{prefix}{suffix}")
 
     def _get_user_id(self) -> int:
@@ -180,63 +211,49 @@ class NotesDashboardView(ctk.CTkFrame):
         return 1
 
     def select_files(self):
-        """Opens native file picker for images, videos, and documents."""
         file_paths = filedialog.askopenfilenames(
-            title="Select Attachments (Images, Videos, Documents)",
-            filetypes=[
-                ("All Supported Files", "*.png *.jpg *.jpeg *.gif *.mp4 *.mkv *.avi *.pdf *.docx *.txt"),
-                ("Images", "*.png *.jpg *.jpeg *.gif *.bmp *.webp"),
-                ("Videos", "*.mp4 *.mkv *.avi *.mov *.webm"),
-                ("Documents", "*.pdf *.docx *.txt")
-            ]
+            title="Select Attachments",
+            filetypes=[("All Supported Files", "*.png *.jpg *.jpeg *.mp4 *.pdf *.docx *.txt")]
         )
-
         if file_paths:
             self.selected_file_paths = list(file_paths)
-            count = len(self.selected_file_paths)
-            self.lbl_attachments_count.configure(
-                text=f"{count} new file(s) selected", 
-                text_color="#10B981"
-            )
+            self.lbl_attachments_count.configure(text=f"{len(self.selected_file_paths)} attached", text_color="#10B981")
+
+    def filter_by_subject(self, subject: str):
+        self.active_subject_filter = subject
+        for s, btn in self.pill_buttons.items():
+            if s == subject:
+                btn.configure(fg_color="#3B82F6", text_color="white")
+            else:
+                btn.configure(fg_color=("gray85", "#2B2B3D"), text_color=("gray10", "#CCCCCC"))
+        self.render_filtered_notes()
+
+    def on_search_change(self, event=None):
+        self.search_query = self.entry_search.get().strip().lower()
+        self.render_filtered_notes()
 
     def save_note(self):
-        """Reads user input and saves or updates the note with attachments."""
-        self._execute_save(include_attachments=True)
-
-    def save_text_note_only(self):
-        """Reads user input and saves or updates the note strictly without attachments."""
-        self._execute_save(include_attachments=False)
-
-    def _execute_save(self, include_attachments: bool):
-        """Internal helper to handle database commit for both save methods."""
         user_id = self._get_user_id()
         subject = self.entry_subject.get().strip()
         title = self.entry_title.get().strip()
         content = self.textbox_content.get("1.0", "end-1c").strip()
 
         if not title:
-            messagebox.showwarning("Missing Title", "Please enter a title or topic for your note.")
+            messagebox.showwarning("Missing Title", "Please enter a title or topic.")
             return
 
-        existing_atts = self.current_existing_attachments if include_attachments else []
-        new_atts = self.selected_file_paths if include_attachments else []
+        new_atts = self.selected_file_paths
 
         if self.editing_note_id:
             success, message = self.notes_logic.update_note(
-                note_id=self.editing_note_id,
-                title=title,
-                content=content,
+                note_id=self.editing_note_id, title=title, content=content,
                 subject=subject if subject else "General",
-                existing_attachments=existing_atts,
-                new_attachment_paths=new_atts
+                existing_attachments=self.current_existing_attachments, new_attachment_paths=new_atts
             )
         else:
-            success, message, note_id = self.notes_logic.create_note(
-                user_id=user_id,
-                title=title,
-                content=content,
-                subject=subject if subject else "General",
-                attachment_paths=new_atts
+            success, message, _ = self.notes_logic.create_note(
+                user_id=user_id, title=title, content=content,
+                subject=subject if subject else "General", attachment_paths=new_atts
             )
 
         if success:
@@ -247,172 +264,161 @@ class NotesDashboardView(ctk.CTkFrame):
             messagebox.showerror("Error", message)
 
     def clear_form(self):
-        """Resets the input fields and resets button states."""
+        """Resets the editor form and clears the live preview state."""
         self.editing_note_id = None
         self.current_existing_attachments = []
-        self.form_title_label.configure(text="Create New Study Note")
+        self.selected_file_paths = []
+        self.active_selected_note = None
         
-        self.btn_save.configure(text="💾 Save Note", fg_color="#10B981", hover_color="#059669")
-        self.btn_save_text_only.configure(text="📝 Save Text Note Only")
-        
+        self.form_title_label.configure(text="✏️ Create New Note")
         self.entry_subject.delete(0, "end")
         self.entry_title.delete(0, "end")
         self.textbox_content.delete("1.0", "end")
-        self.selected_file_paths = []
         self.lbl_attachments_count.configure(text="No files attached", text_color=("gray50", "#AAAAAA"))
 
+        # Reset preview pane to empty state
+        self.preview_meta_label.configure(text="SUBJECT • DATE")
+        self.preview_title_label.configure(text="Select a note to preview")
+        self.preview_content_textbox.configure(state="normal")
+        self.preview_content_textbox.delete("1.0", "end")
+        self.preview_content_textbox.configure(state="disabled")
+
     def load_user_notes(self):
-        """Fetches and displays saved notes grouped per Subject with Topic Dropdowns."""
+        user_id = self._get_user_id()
+        self.all_user_notes = self.notes_logic.get_user_notes(user_id)
+        self.refresh_subject_pills()
+        self.render_filtered_notes()
+
+        # Automatically load the first note into preview if none is active
+        if self.all_user_notes and not self.active_selected_note:
+            self.load_note_into_preview(self.all_user_notes[0])
+        elif not self.all_user_notes:
+            self.clear_form()
+
+    def refresh_subject_pills(self):
+        for widget in self.pills_frame.winfo_children():
+            widget.destroy()
+        self.pill_buttons = {}
+
+        unique_subjects = sorted(list(set(n.get("subject", "General") or "General" for n in self.all_user_notes)))
+        subjects_list = ["ALL"] + unique_subjects
+
+        if self.active_subject_filter not in subjects_list:
+            self.active_subject_filter = "ALL"
+
+        for subj in subjects_list:
+            btn = ctk.CTkButton(
+                self.pills_frame,
+                text=subj,
+                font=("Poppins", 10, "bold"),
+                width=55,
+                height=28,
+                fg_color="#3B82F6" if subj == self.active_subject_filter else ("gray85", "#2B2B3D"),
+                text_color="white" if subj == self.active_subject_filter else ("gray10", "#CCCCCC"),
+                command=lambda s=subj: self.filter_by_subject(s)
+            )
+            btn.pack(side="left", padx=3)
+            self.pill_buttons[subj] = btn
+
+    def render_filtered_notes(self):
         for widget in self.scroll_notes.winfo_children():
             widget.destroy()
 
-        user_id = self._get_user_id()
-        notes = self.notes_logic.get_user_notes(user_id)
+        filtered = []
+        for note in self.all_user_notes:
+            subj = note.get("subject", "General") or "General"
+            title = note.get("title", "")
+            content = note.get("content", "")
 
-        if not notes:
-            ctk.CTkLabel(
-                self.scroll_notes, 
-                text="No notes saved yet.", 
-                text_color=("gray50", "#888888"),
-                font=("Poppins", 12)
-            ).pack(pady=20)
+            if self.active_subject_filter != "ALL" and self.active_subject_filter.lower() != subj.lower():
+                continue
+            if self.search_query and self.search_query not in title.lower() and self.search_query not in content.lower():
+                continue
+
+            filtered.append(note)
+
+        if not filtered:
+            ctk.CTkLabel(self.scroll_notes, text="No notes found.", text_color=("gray50", "#888888"), font=("Poppins", 11)).pack(pady=20)
             return
 
-        grouped_notes = {}
-        for note in notes:
-            subj = note.get("subject", "General") or "General"
-            if subj not in grouped_notes:
-                grouped_notes[subj] = []
-            grouped_notes[subj].append(note)
+        for note in filtered:
+            card = ctk.CTkFrame(self.scroll_notes, fg_color=("gray95", "#2B2B3D"), corner_radius=8)
+            card.pack(fill="x", pady=4, padx=2)
 
-        for subject_name, subject_notes in grouped_notes.items():
-            subject_card = ctk.CTkFrame(self.scroll_notes, fg_color=("gray90", "#2B2B3D"), corner_radius=10)
-            subject_card.pack(fill="x", pady=8, padx=5)
+            top_r = ctk.CTkFrame(card, fg_color="transparent")
+            top_r.pack(fill="x", padx=10, pady=(8, 2))
 
             ctk.CTkLabel(
-                subject_card, 
-                text=f"📚 {subject_name} ({len(subject_notes)} Topic{'s' if len(subject_notes) > 1 else ''})", 
-                font=("Poppins", 15, "bold"), 
-                text_color="#3B82F6",
-                wraplength=340
-            ).pack(anchor="w", padx=15, pady=(12, 4))
+                top_r, 
+                text=f"{note.get('subject', 'General')} - {note.get('title', 'Untitled')}", 
+                font=("Poppins", 11, "bold"), 
+                text_color=("#059669", "#10B981")
+            ).pack(side="left")
 
+            timestamp = note.get("created_at", "")
             ctk.CTkLabel(
-                subject_card, 
-                text="Select Topic / Title:", 
-                font=("Poppins", 11), 
+                top_r, 
+                text=timestamp[:10] if timestamp else "", 
+                font=("Poppins", 9), 
                 text_color=("gray50", "#AAAAAA")
-            ).pack(anchor="w", padx=15, pady=(0, 2))
+            ).pack(side="right")
 
-            topic_titles = [n["title"] for n in subject_notes]
+            snippet = note.get("content", "")
+            ctk.CTkLabel(
+                card, 
+                text=(snippet[:90] + "...") if len(snippet) > 90 else (snippet or "(No preview)"), 
+                font=("Poppins", 10), 
+                text_color=("gray30", "#CCCCCC"),
+                justify="left",
+                anchor="w"
+            ).pack(anchor="w", padx=10, pady=(0, 6))
 
-            preview_frame = ctk.CTkFrame(subject_card, fg_color=("gray95", "#1E1E2E"), corner_radius=8)
-            
-            lbl_title = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 14, "bold"), text_color=("gray10", "#FFFFFF"), anchor="w", wraplength=320)
-            lbl_title.pack(fill="x", padx=12, pady=(10, 2))
+            act_bar = ctk.CTkFrame(card, fg_color="transparent")
+            act_bar.pack(fill="x", padx=10, pady=(0, 8))
 
-            lbl_content = ctk.CTkLabel(
-                preview_frame, 
-                text="", 
-                font=("Poppins", 11), 
-                text_color=("gray30", "#DDDDDD"), 
-                anchor="w", 
-                justify="left", 
-                wraplength=320
-            )
-            lbl_content.pack(fill="x", padx=12, pady=4)
+            def make_select_action(n=note):
+                return lambda: self.load_note_into_preview_and_form(n)
 
-            lbl_attachments = ctk.CTkLabel(preview_frame, text="", font=("Poppins", 10), text_color="#10B981", anchor="w")
-            lbl_attachments.pack(fill="x", padx=12, pady=(2, 8))
+            def make_delete_action(n=note):
+                return lambda: self.delete_note_action(n)
 
-            btn_frame = ctk.CTkFrame(preview_frame, fg_color="transparent")
-            btn_frame.pack(fill="x", padx=12, pady=(0, 10))
+            ctk.CTkButton(act_bar, text="View/Edit", width=65, height=22, font=("Poppins", 9, "bold"), fg_color="#3B82F6", command=make_select_action()).pack(side="left", padx=(0, 4))
+            ctk.CTkButton(act_bar, text="Delete", width=55, height=22, font=("Poppins", 9, "bold"), fg_color="#EF4444", command=make_delete_action()).pack(side="left")
 
-            current_note_ref = {"note": None}
+    def load_note_into_preview(self, note: dict):
+        self.active_selected_note = note
+        self.preview_meta_label.configure(text=f"{note.get('subject', 'General').upper()} • {note.get('created_at', '')[:10]}")
+        self.preview_title_label.configure(text=note.get("title", "Untitled"))
+        
+        self.preview_content_textbox.configure(state="normal")
+        self.preview_content_textbox.delete("1.0", "end")
+        self.preview_content_textbox.insert("1.0", note.get("content", ""))
+        self.preview_content_textbox.configure(state="disabled")
 
-            def edit_selected_note(ref=current_note_ref):
-                note = ref["note"]
-                if note:
-                    self.editing_note_id = note["id"]
-                    self.current_existing_attachments = note.get("attachments", [])
-                    
-                    self.form_title_label.configure(text=f"Editing: {note['title']}")
-                    self.btn_save.configure(text="💾 Update Note", fg_color="#F59E0B", hover_color="#D97706")
-                    self.btn_save_text_only.configure(text="📝 Update Text Only")
-                    
-                    self.entry_subject.delete(0, "end")
-                    self.entry_subject.insert(0, note.get("subject", ""))
-                    self.entry_title.delete(0, "end")
-                    self.entry_title.insert(0, note.get("title", ""))
-                    self.textbox_content.delete("1.0", "end")
-                    self.textbox_content.insert("1.0", note.get("content", ""))
-                    
-                    if self.current_existing_attachments:
-                        self.lbl_attachments_count.configure(
-                            text=f"{len(self.current_existing_attachments)} existing file(s)",
-                            text_color="#3B82F6"
-                        )
+    def load_note_into_preview_and_form(self, note: dict):
+        self.load_note_into_preview(note)
+        self.editing_note_id = note["id"]
+        self.current_existing_attachments = note.get("attachments", [])
+        self.selected_file_paths = []
+        self.form_title_label.configure(text=f"✏️ Editing: {note['title']}")
+        self.entry_subject.delete(0, "end")
+        self.entry_subject.insert(0, note.get("subject", ""))
+        self.entry_title.delete(0, "end")
+        self.entry_title.insert(0, note.get("title", ""))
+        self.textbox_content.delete("1.0", "end")
+        self.textbox_content.insert("1.0", note.get("content", ""))
+        if self.current_existing_attachments:
+            self.lbl_attachments_count.configure(text=f"{len(self.current_existing_attachments)} attached", text_color="#3B82F6")
+        else:
+            self.lbl_attachments_count.configure(text="No files attached", text_color=("gray50", "#AAAAAA"))
 
-            def delete_selected_note(ref=current_note_ref):
-                note = ref["note"]
-                if note and messagebox.askyesno("Confirm Delete", f"Delete topic '{note['title']}'?"):
-                    self.notes_logic.delete_note(note["id"])
-                    self.clear_form()
-                    self.load_user_notes()
-
-            btn_edit_topic = ctk.CTkButton(
-                btn_frame, text="✏️ Edit", font=("Poppins", 11, "bold"), 
-                width=70, height=32, fg_color="#3B82F6", command=edit_selected_note
-            )
-            btn_edit_topic.pack(side="left", padx=(0, 5))
-
-            btn_delete_topic = ctk.CTkButton(
-                btn_frame, text="🗑️ Delete", font=("Poppins", 11, "bold"), 
-                width=75, height=32, fg_color="#EF4444", hover_color="#DC2626", command=delete_selected_note
-            )
-            btn_delete_topic.pack(side="left")
-
-            def make_topic_selector(s_notes, p_frame, l_title, l_content, l_att, ref_holder):
-                def on_topic_select(selected_title):
-                    matched_note = next((n for n in s_notes if n["title"] == selected_title), None)
-                    if matched_note:
-                        ref_holder["note"] = matched_note
-                        p_frame.pack(fill="x", padx=15, pady=(5, 12))
-                        l_title.configure(text=matched_note["title"])
-
-                        content = matched_note.get("content", "")
-                        display_text = content if len(content) <= 180 else content[:180] + "..."
-                        l_content.configure(text=display_text if display_text else "(No text content)")
-
-                        attachments = matched_note.get("attachments", [])
-                        if attachments:
-                            l_att.configure(text=f"📎 {len(attachments)} Media/Attachment(s)")
-                        else:
-                            l_att.configure(text="No media attachments")
-                return on_topic_select
-
-            on_select_callback = make_topic_selector(
-                subject_notes, preview_frame, lbl_title, lbl_content, lbl_attachments, current_note_ref
-            )
-
-            topic_dropdown = ctk.CTkOptionMenu(
-                subject_card,
-                values=topic_titles,
-                command=on_select_callback,
-                fg_color=("white", "#1E1E2E"),
-                text_color=("gray10", "#FFFFFF"),
-                button_color="#3B82F6",
-                button_hover_color="#2563EB",
-                font=("Poppins", 12),
-                dropdown_font=("Poppins", 11),
-                height=38
-            )
-            topic_dropdown.pack(fill="x", padx=15, pady=(0, 12))
-
-            if topic_titles:
-                topic_dropdown.set(topic_titles[0])
-                on_select_callback(topic_titles[0])
+    def delete_note_action(self, note: dict):
+        if messagebox.askyesno("Confirm Delete", f"Delete note '{note['title']}'?"):
+            self.notes_logic.delete_note(note["id"])
+            if self.active_selected_note and self.active_selected_note.get("id") == note["id"]:
+                self.active_selected_note = None
+            self.clear_form()
+            self.load_user_notes()
 
     def on_show(self):
-        """Lifecycle method triggered when view switches to notes dashboard."""
         self.load_user_notes()

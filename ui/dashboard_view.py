@@ -251,8 +251,15 @@ class DashboardView(ctk.CTkFrame):
         self.show_sub_view("home")
 
     def open_tutorial(self):
-        """Launches the onboarding tutorial modal."""
-        OnboardingTutorial(self, self.controller)
+        """Launches the floating onboarding tutorial pointing to specific app sections."""
+        # Map target keys to your actual button instances in DashboardView
+        targets = {
+            "notes": getattr(self, "btn_notes_sidebar", None),  # or whichever reference you map
+            "quizzes": getattr(self, "btn_quizzes_sidebar", None),
+            "schedule": getattr(self, "btn_schedule_sidebar", None),
+            "progress": getattr(self, "btn_progress_sidebar", None)
+        }
+        OnboardingTutorial(self, self.controller, target_widgets=targets)
 
     def _create_stat_card(self, parent, title, initial_val, color, col_idx):
         card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10)
