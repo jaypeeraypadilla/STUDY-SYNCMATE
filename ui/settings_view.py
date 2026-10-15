@@ -26,7 +26,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             text_color=("gray10", "#FFFFFF")
         ).pack(anchor="w", padx=20, pady=(15, 15))
 
-        # 1. Theme Appearance Mode (Dark / Light / System / Sepia / Warm)
+        # 1. Theme Appearance Mode (Dark / Light / System)
         ctk.CTkLabel(
             self.appearance_frame, 
             text="Interface Theme Mode:", 
@@ -36,7 +36,7 @@ class SettingsViewFrame(ctk.CTkFrame):
         
         self.combo_theme = ctk.CTkOptionMenu(
             self.appearance_frame,
-            values=["Dark", "Light", "System", "Sepia", "Warm"],
+            values=["Dark", "Light", "System"],
             command=self.change_appearance_mode,
             height=35,
             fg_color=("gray85", "#2B2B3D"),
@@ -69,16 +69,6 @@ class SettingsViewFrame(ctk.CTkFrame):
         # Divider line
         ctk.CTkFrame(self.appearance_frame, height=2, fg_color=("gray80", "#2B2B3D")).pack(fill="x", padx=20, pady=10)
 
-        # Quick info note
-        ctk.CTkLabel(
-            self.appearance_frame, 
-            text="💡 Note: Custom modes like Sepia and Warm optimize background tones for reduced eye strain during long study sessions.", 
-            font=("Poppins", 10, "italic"), 
-            text_color=("gray30", "#AAAAAA"),
-            justify="left",
-            wraplength=320
-        ).pack(anchor="w", padx=20, pady=10)
-
         # =============================================================
         # RIGHT PANEL: ABOUT & HELP / FAQ
         # =============================================================
@@ -98,18 +88,18 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.1.5", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.1.6", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
             "Study SyncMate is a centralized, modular academic desktop application "
             "designed to help students organize notes, track tasks, generate practice quizzes, "
             "and monitor study progress seamlessly.\n\n"
-            "Developers: SilverNox, Peony, Yanyan, Athan, Exil3, and Xywinn.\n\n\n\n"
+            "Developers: SilverNox(Ray), Peony(Richboy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), and Xywinn(Russel).\n\n\n\n"
             "Developed with Python, Tkinter, CustomTkinter, and SQLite."
         )
         ctk.CTkLabel(
-            self.tab_about, text=about_text, font=("Poppins", 11), text_color=("gray20", "#DDDDDD"), justify="left", wraplength=320
+            self.tab_about, text=about_text, font=("Poppins", 13), text_color=("gray20", "#DDDDDD"), justify="left", wraplength=320
         ).pack(anchor="w", padx=10, pady=5)
 
         # --- HELP & FAQ TAB CONTENT ---
@@ -134,19 +124,9 @@ class SettingsViewFrame(ctk.CTkFrame):
     # =============================================================
 
     def change_appearance_mode(self, new_mode: str):
-        """Switches appearance mode or applies custom color tones for Sepia / Warm mode."""
+        """Switches standard application appearance mode (Dark, Light, System)."""
         if new_mode in ["Dark", "Light", "System"]:
             ctk.set_appearance_mode(new_mode)
-        elif new_mode == "Sepia":
-            # Switch underlying mode to Light and customize palettes for a warm paper/sepia tone (#F4ECD8)
-            ctk.set_appearance_mode("Light")
-            if hasattr(self.controller, "apply_custom_theme"):
-                self.controller.apply_custom_theme("sepia")
-        elif new_mode == "Warm":
-            # Switch underlying mode to Dark or Light with warm amber/orange highlights
-            ctk.set_appearance_mode("Dark")
-            if hasattr(self.controller, "apply_custom_theme"):
-                self.controller.apply_custom_theme("warm")
 
     def change_ui_scaling(self, scale_str: str):
         """Changes global font and widget scaling size."""

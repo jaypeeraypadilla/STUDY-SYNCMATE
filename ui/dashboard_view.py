@@ -36,16 +36,29 @@ class DashboardView(ctk.CTkFrame):
         self.header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("gray90", "#1E1E2E"))
         self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
 
+        # Left Header Container (Logo Icon + Welcome Text)
+        self.header_left_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        self.header_left_frame.pack(side="left", padx=15, pady=8)
+
+        # Logo Icon / Emblem
+        self.logo_label = ctk.CTkLabel(
+            self.header_left_frame, 
+            text="📘", 
+            font=("Poppins", 20),
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.logo_label.pack(side="left", padx=(0, 10))
+
         # Welcome Label
         self.welcome_label = ctk.CTkLabel(
-            self.header_frame, 
+            self.header_left_frame, 
             text="Welcome to Study SyncMate", 
             font=("Poppins", 18, "bold"), 
             text_color=("gray10", "#FFFFFF")
         )
-        self.welcome_label.pack(side="left", padx=20, pady=12)
+        self.welcome_label.pack(side="left")
 
-        # Header Buttons
+        # Header Buttons (Logout, Expanding Profile, Expanding Tutorial)
         self.btn_logout = ctk.CTkButton(
             self.header_frame, 
             text="Logout", 
@@ -58,30 +71,39 @@ class DashboardView(ctk.CTkFrame):
         )
         self.btn_logout.pack(side="right", padx=(5, 15), pady=12)
 
+        # Expanding Profile Button
         self.btn_profile = ctk.CTkButton(
             self.header_frame, 
-            text="Profile", 
-            width=90, 
-            height=32,
-            font=("Poppins", 12, "bold"), 
-            fg_color="#000080", 
-            hover_color="#000055",
+            text="👤", 
+            width=36, 
+            height=36,
+            corner_radius=18,
+            font=("Poppins", 13, "bold"), 
+            fg_color=("#E5E7EB", "#2B2B3D"), 
+            hover_color=("#D1D5DB", "#3A3A4E"),
+            text_color=("gray10", "#FFFFFF"),
             command=self.nav_profile
         )
         self.btn_profile.pack(side="right", padx=5, pady=12)
+        self.btn_profile.bind("<Enter>", lambda e: self.btn_profile.configure(text="👤 Profile", width=110))
+        self.btn_profile.bind("<Leave>", lambda e: self.btn_profile.configure(text="👤", width=36))
 
-        # Tutorial Tour Button
+        # Expanding Tutorial Tour Button
         self.btn_tutorial = ctk.CTkButton(
             self.header_frame, 
-            text="💡 Tutorial", 
-            width=90, 
-            height=32,
-            font=("Poppins", 12, "bold"), 
-            fg_color="#3B82F6", 
-            hover_color="#2563EB",
+            text="💡", 
+            width=36, 
+            height=36,
+            corner_radius=18,
+            font=("Poppins", 13, "bold"), 
+            fg_color=("#E5E7EB", "#2B2B3D"), 
+            hover_color=("#D1D5DB", "#3A3A4E"),
+            text_color=("gray10", "#FFFFFF"),
             command=self.open_tutorial
         )
         self.btn_tutorial.pack(side="right", padx=5, pady=12)
+        self.btn_tutorial.bind("<Enter>", lambda e: self.btn_tutorial.configure(text="💡 Tutorial", width=110))
+        self.btn_tutorial.bind("<Leave>", lambda e: self.btn_tutorial.configure(text="💡", width=36))
 
         # =============================================================
         # 2. LEFT SIDEBAR NAVIGATION
@@ -123,7 +145,7 @@ class DashboardView(ctk.CTkFrame):
         # Bottom Motivational Widget
         self.habit_widget = ctk.CTkFrame(self.sidebar_frame, fg_color=("gray95", "#1E1E2E"), corner_radius=8)
         self.habit_widget.pack(side="bottom", fill="x", padx=10, pady=15)
-        ctk.CTkLabel(self.habit_widget, text="🎯", font=("Poppins", 18)).pack(pady=(8, 0))
+        ctk.CTkLabel(self.habit_widget, text="🎯", font=("Poppins", 18), text_color=("gray10", "#FFFFFF")).pack(pady=(8, 0))
         ctk.CTkLabel(
             self.habit_widget, text="Better habits,\nBrighter future.", font=("Poppins", 9, "bold"), text_color="#10B981", justify="center"
         ).pack(pady=(2, 8))
@@ -176,7 +198,7 @@ class DashboardView(ctk.CTkFrame):
             hero_text_box, text="Your goals are within reach. Let's keep learning!", font=("Poppins", 11), text_color=("gray50", "#AAAAAA"), justify="left", wraplength=350
         ).pack(anchor="w", pady=(4, 0))
 
-        ctk.CTkLabel(self.hero_banner, text="🎓📚", font=("Poppins", 36)).pack(side="right", padx=25, pady=15)
+        ctk.CTkLabel(self.hero_banner, text="🎓📚", font=("Poppins", 36), text_color=("gray10", "#FFFFFF")).pack(side="right", padx=25, pady=15)
 
         # Quick Action Cards Grid
         self.quick_actions_grid = ctk.CTkFrame(self.center_column, fg_color="transparent")
@@ -252,9 +274,8 @@ class DashboardView(ctk.CTkFrame):
 
     def open_tutorial(self):
         """Launches the floating onboarding tutorial pointing to specific app sections."""
-        # Map target keys to your actual button instances in DashboardView
         targets = {
-            "notes": getattr(self, "btn_notes_sidebar", None),  # or whichever reference you map
+            "notes": getattr(self, "btn_notes_sidebar", None),
             "quizzes": getattr(self, "btn_quizzes_sidebar", None),
             "schedule": getattr(self, "btn_schedule_sidebar", None),
             "progress": getattr(self, "btn_progress_sidebar", None)
@@ -283,6 +304,7 @@ class DashboardView(ctk.CTkFrame):
             fg_color=("gray90", "#2B2B3D"),
             hover_color=("gray80", "#3A3A4E"),
             font=("Poppins", 14),
+            text_color=("gray10", "#FFFFFF"),
             command=command_fn
         ).pack(anchor="w", padx=10, pady=(10, 2))
 

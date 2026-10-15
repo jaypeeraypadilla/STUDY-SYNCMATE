@@ -23,7 +23,7 @@ class WelcomeView(ctk.CTkFrame):
         ctk.CTkLabel(
             self.center_card, 
             text="Study SyncMate", 
-            font=("Poppins", 22, "bold"), 
+            font=("Poppins", 24, "bold"), 
             text_color="#FFFFFF"
         ).pack(pady=(0, 5))
 
@@ -31,7 +31,7 @@ class WelcomeView(ctk.CTkFrame):
         ctk.CTkLabel(
             self.center_card, 
             text="Your centralized, modular academic desktop companion designed to keep your notes, quizzes, and schedules synchronized.", 
-            font=("Poppins", 11), 
+            font=("Poppins", 13), 
             text_color="#AAAAAA",
             justify="center",
             wraplength=380
@@ -41,7 +41,7 @@ class WelcomeView(ctk.CTkFrame):
         btn_start = ctk.CTkButton(
             self.center_card,
             text="Get Started ➔",
-            font=("Poppins", 13, "bold"),
+            font=("Poppins", 16, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
             width=200,

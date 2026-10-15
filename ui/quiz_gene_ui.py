@@ -4,7 +4,7 @@ from logic.quiz_generator import QuizGenerator
 
 
 class QuizGeneView(ctk.CTkFrame):
-    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, and Enumeration via Gemini AI."""
+    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, Enumeration, and professional Flashcards via Gemini AI."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -14,12 +14,13 @@ class QuizGeneView(ctk.CTkFrame):
         self.active_flashcards = []
         self.current_flashcard_idx = 0
         self.showing_answer = False
+        self.showing_hint = False
 
         self.active_quiz_questions = []
         self.current_quiz_idx = 0
         self.user_score = 0
         self.selected_option_var = ctk.StringVar(value="")
-        self.enum_entry_vars = []  # Stores string vars for enumeration input boxes
+        self.enum_entry_vars = []
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -131,7 +132,6 @@ class QuizGeneView(ctk.CTkFrame):
             messagebox.showwarning("Warning", "Please select a valid subject with saved notes.")
             return
 
-        # Show loading feedback while AI generates content
         self.show_loading_state()
 
         if "Flashcards" in mode:
@@ -142,6 +142,7 @@ class QuizGeneView(ctk.CTkFrame):
                 return
             self.current_flashcard_idx = 0
             self.showing_answer = False
+            self.showing_hint = False
             self.build_flashcard_screen()
         else:
             if "Multiple Choice" in mode:
@@ -150,7 +151,7 @@ class QuizGeneView(ctk.CTkFrame):
                 self.active_quiz_questions = self.quiz_logic.generate_identification_questions(user_id, subject)
             elif "Enumeration" in mode:
                 self.active_quiz_questions = self.quiz_logic.generate_enumeration_questions(user_id, subject)
-            else:  # Comprehensive Mixed Quiz
+            else:
                 self.active_quiz_questions = self.quiz_logic.generate_practice_quiz(user_id, subject)
 
             if not self.active_quiz_questions:
@@ -163,7 +164,7 @@ class QuizGeneView(ctk.CTkFrame):
             self.build_quiz_question_screen(subject)
 
     # =============================================================
-    # FLASHCARDS SCREEN
+    # OPTIMIZED FLASHCARDS SCREEN (With Back Option)
     # =============================================================
     def build_flashcard_screen(self):
         self.clear_container()
@@ -184,41 +185,75 @@ class QuizGeneView(ctk.CTkFrame):
             header_frame, text="❌ Exit", width=70, height=28, fg_color="#EF4444", command=self.build_setup_screen
         ).pack(side="right")
 
-        self.card_box = ctk.CTkFrame(self.main_card, fg_color=("gray95", "#2B2B3D"), corner_radius=12, height=220)
+        self.card_box = ctk.CTkFrame(self.main_card, fg_color=("gray95", "#2B2B3D"), corner_radius=12, height=250)
         self.card_box.pack(fill="both", expand=True, padx=25, pady=10)
         self.card_box.pack_propagate(False)
 
+        # Mode Indicator (Front vs Back)
+        mode_text = "❓ Front (Term / Question)" if not self.showing_answer else "💡 Back (Definition / Explanation)"
         ctk.CTkLabel(
             self.card_box, 
-            text=card_data["question"] if not self.showing_answer else "Answer / Summary:", 
-            font=("Poppins", 12, "bold"), 
-            text_color=("#059669", "#10B981")
-        ).pack(anchor="w", padx=20, pady=(20, 5))
+            text=mode_text, 
+            font=("Poppins", 11, "bold"), 
+            text_color=("#059669", "#10B981") if self.showing_answer else ("#3B82F6", "#60A5FA")
+        ).pack(anchor="w", padx=20, pady=(15, 2))
 
+        # Main Card Content (Front or Back)
+        display_text = card_data["front"] if not self.showing_answer else card_data["back"]
         ctk.CTkLabel(
             self.card_box, 
-            text=card_data["answer"] if self.showing_answer else card_data["answer"][:250] + "...", 
-            font=("Poppins", 13), 
+            text=display_text, 
+            font=("Poppins", 14, "bold" if not self.showing_answer else "normal"), 
             text_color=("gray10", "#FFFFFF"), 
             justify="left", 
-            wraplength=550
+            wraplength=530
         ).pack(anchor="w", padx=20, pady=10, fill="both", expand=True)
 
+        # Hint Section (If revealed)
+        if card_data.get("hint") and self.showing_hint:
+            hint_box = ctk.CTkFrame(self.card_box, fg_color=("gray90", "#1E1E2E"), corner_radius=6)
+            hint_box.pack(fill="x", padx=20, pady=(0, 15))
+            ctk.CTkLabel(
+                hint_box, 
+                text=f"💡 Hint: {card_data['hint']}", 
+                font=("Poppins", 10, "italic"), 
+                text_color="#F59E0B",
+                justify="left",
+                wraplength=500
+            ).pack(anchor="w", padx=10, pady=6)
+
+        # Navigation & Action Row
         nav_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         nav_frame.pack(fill="x", padx=25, pady=20)
 
+        # Back / Previous Button for Flashcards
+        if self.current_flashcard_idx > 0:
+            ctk.CTkButton(
+                nav_frame, text="⬅️ Prev", fg_color="gray50", hover_color="gray40", height=38, width=80, command=self.prev_flashcard
+            ).pack(side="left", padx=(0, 8))
+
+        if card_data.get("hint"):
+            hint_btn_text = "Hide Hint" if self.showing_hint else "💡 Show Hint"
+            ctk.CTkButton(
+                nav_frame, text=hint_btn_text, fg_color="#8B5CF6", hover_color="#7C3AED", height=38, width=100, command=self.toggle_hint
+            ).pack(side="left", padx=(0, 8))
+
         ctk.CTkButton(
             nav_frame, text="🔄 Flip Card", fg_color="#F59E0B", hover_color="#D97706", height=38, command=self.flip_flashcard
-        ).pack(side="left", expand=True, fill="x", padx=(0, 10))
+        ).pack(side="left", expand=True, fill="x", padx=(0, 8))
 
         if self.current_flashcard_idx < len(self.active_flashcards) - 1:
             ctk.CTkButton(
                 nav_frame, text="Next ➡️", fg_color="#3B82F6", height=38, command=self.next_flashcard
-            ).pack(side="right", expand=True, fill="x", padx=(10, 0))
+            ).pack(side="right", expand=True, fill="x", padx=(8, 0))
         else:
             ctk.CTkButton(
                 nav_frame, text="✨ Finish Review", fg_color="#10B981", height=38, command=self.build_setup_screen
-            ).pack(side="right", expand=True, fill="x", padx=(10, 0))
+            ).pack(side="right", expand=True, fill="x", padx=(8, 0))
+
+    def toggle_hint(self):
+        self.showing_hint = not self.showing_hint
+        self.build_flashcard_screen()
 
     def flip_flashcard(self):
         self.showing_answer = not self.showing_answer
@@ -227,10 +262,18 @@ class QuizGeneView(ctk.CTkFrame):
     def next_flashcard(self):
         self.current_flashcard_idx += 1
         self.showing_answer = False
+        self.showing_hint = False
         self.build_flashcard_screen()
 
+    def prev_flashcard(self):
+        if self.current_flashcard_idx > 0:
+            self.current_flashcard_idx -= 1
+            self.showing_answer = False
+            self.showing_hint = False
+            self.build_flashcard_screen()
+
     # =============================================================
-    # PRACTICE QUIZ SCREEN (Multiple Choice, Identification, Enumeration)
+    # PRACTICE QUIZ SCREEN (With Back Option)
     # =============================================================
     def build_quiz_question_screen(self, subject):
         self.clear_container()
@@ -254,7 +297,6 @@ class QuizGeneView(ctk.CTkFrame):
             header_frame, text=f"Subject: {subject}", font=("Poppins", 11), text_color=("gray30", "#AAAAAA")
         ).pack(side="right")
 
-        # Question Prompt
         ctk.CTkLabel(
             self.main_card, 
             text=q_data["prompt"], 
@@ -264,7 +306,6 @@ class QuizGeneView(ctk.CTkFrame):
             wraplength=580
         ).pack(anchor="w", padx=25, pady=(5, 15))
 
-        # RENDER INPUT WIDGETS BASED ON QUESTION TYPE
         if q_type == "Multiple Choice":
             for option in q_data["options"]:
                 rb = ctk.CTkRadioButton(
@@ -298,16 +339,31 @@ class QuizGeneView(ctk.CTkFrame):
                 self.enum_entry_vars.append(v)
                 ctk.CTkEntry(row_f, textvariable=v, height=32, font=("Poppins", 11)).pack(side="left", fill="x", expand=True, padx=5)
 
-        # Submit Button
+        # Action Row containing Back and Submit buttons
+        btn_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=25, pady=(25, 10))
+
+        if self.current_quiz_idx > 0:
+            ctk.CTkButton(
+                btn_frame,
+                text="⬅️ Previous",
+                font=("Poppins", 14, "bold"),
+                fg_color="gray50",
+                hover_color="gray40",
+                height=40,
+                width=110,
+                command=lambda: self.prev_quiz_answer(subject)
+            ).pack(side="left", padx=(0, 10))
+
         ctk.CTkButton(
-            self.main_card,
+            btn_frame,
             text="Submit Answer ➔",
             font=("Poppins", 14, "bold"),
             fg_color="#10B981",
             hover_color="#059669",
             height=40,
             command=lambda: self.submit_quiz_answer(subject, q_type)
-        ).pack(fill="x", padx=25, pady=(25, 10))
+        ).pack(side="right", fill="x", expand=True)
 
     def submit_quiz_answer(self, subject, q_type):
         q_data = self.active_quiz_questions[self.current_quiz_idx]
@@ -353,6 +409,11 @@ class QuizGeneView(ctk.CTkFrame):
                 total_questions=total
             )
             self.build_quiz_results_screen(subject, total)
+
+    def prev_quiz_answer(self, subject):
+        if self.current_quiz_idx > 0:
+            self.current_quiz_idx -= 1
+            self.build_quiz_question_screen(subject)
 
     def build_quiz_results_screen(self, subject, total):
         self.clear_container()

@@ -14,7 +14,7 @@ except ImportError:
 
 
 class QuizGenerator:
-    """Intelligently generates Identification, Multiple Choice, and Enumeration quizzes and flashcards from study notes using Gemini AI."""
+    """Intelligently generates Identification, Multiple Choice, Enumeration, and optimized Flashcards from notes using Gemini AI."""
 
     def __init__(self):
         self.db = db
@@ -47,10 +47,9 @@ class QuizGenerator:
                 return response.text
             except Exception as e:
                 print(f"Gemini API Error (Attempt {attempt + 1}/{max_retries}): {e}")
-                # Automatically retry if it's a 503 high-demand error
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     if attempt < max_retries - 1:
-                        time.sleep(2 * (attempt + 1))  # Wait before retrying
+                        time.sleep(2 * (attempt + 1))
                         continue
                 break
         return None
@@ -60,12 +59,10 @@ class QuizGenerator:
         if not text:
             return None
         try:
-            # Try direct load first
             return json.loads(text.strip())
         except json.JSONDecodeError:
             pass
 
-        # Try extracting from markdown code block ```json ... ```
         match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
         if match:
             try:
@@ -75,20 +72,25 @@ class QuizGenerator:
         return None
 
     # =============================================================
-    # FLASHCARDS GENERATION
+    # OPTIMIZED FLASHCARDS GENERATION
     # =============================================================
     def generate_flashcards(self, user_id: int, subject: str) -> List[Dict[str, str]]:
-        """Generates AI-powered study flashcards or falls back to local titles."""
+        """Generates structured, professional flashcards with front prompt, back explanation, and hint."""
         notes = self.notes_manager.get_user_notes(user_id, subject_filter=subject)
         if not notes:
             return []
 
         notes_dump = "\n\n".join([f"Title: {n['title']}\nContent: {n['content']}" for n in notes])
         prompt = (
-            f"You are an expert AI tutor. Review the following study notes for subject '{subject}' and create "
-            f"a JSON list of flashcards. Each flashcard must have 'question' and 'answer' keys.\n\n"
+            f"You are an expert instructional designer and tutor. Review the following study notes for subject '{subject}' "
+            f"and create a JSON list of high-yield study flashcards.\n"
+            f"Each flashcard must be structured with:\n"
+            f"- 'front': A concise term, key concept, or direct question.\n"
+            f"- 'back': A clear, comprehensive definition, explanation, or answer.\n"
+            f"- 'hint': A short, helpful clue to jog memory without giving away the full answer.\n\n"
             f"Notes:\n{notes_dump}\n\n"
-            f"Output strictly in JSON format as a list: [{{\"question\": \"...\", \"answer\": \"...\"}}]"
+            f"Output strictly in JSON format as a list of objects: "
+            f"[{{\"front\": \"...\", \"back\": \"...\", \"hint\": \"...\"}}]"
         )
 
         ai_res = self._call_gemini_ai(prompt)
@@ -97,17 +99,18 @@ class QuizGenerator:
         if parsed and isinstance(parsed, list):
             flashcards = []
             for item in parsed:
-                if "question" in item and "answer" in item:
+                if "front" in item and "back" in item:
                     flashcards.append({
-                        "question": item["question"],
-                        "answer": item["answer"],
+                        "front": item["front"],
+                        "back": item["back"],
+                        "hint": item.get("hint", "Review your saved notes for this concept."),
                         "subject": subject
                     })
             if flashcards:
                 random.shuffle(flashcards)
                 return flashcards
 
-        # Fallback to local generator
+        # Fallback to local structured generator
         return self._local_generate_flashcards(notes, subject)
 
     def _local_generate_flashcards(self, notes: List[Dict], subject: str) -> List[Dict[str, str]]:
@@ -117,8 +120,9 @@ class QuizGenerator:
             content = note.get("content", "No content provided.")
             if content.strip():
                 flashcards.append({
-                    "question": f"Define / Explain: {title}",
-                    "answer": content,
+                    "front": f"What is {title}?",
+                    "back": content,
+                    "hint": f"Look up notes under topic: {title}",
                     "subject": subject
                 })
         random.shuffle(flashcards)

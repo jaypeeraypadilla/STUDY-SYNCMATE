@@ -4,7 +4,6 @@ import hashlib
 from typing import Tuple, Dict, Any, Optional
 from database.db_connection import db
 
-
 class ProfileManager:
     """Handles fetching and updating user profile data and credentials."""
 

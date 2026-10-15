@@ -2,7 +2,6 @@ import sqlite3
 from typing import List, Dict, Any, Tuple, Optional
 from database.db_connection import db
 
-
 class ScheduleManager:
     """Manages tasks, study planner items, and study session logs in SQLite."""
 

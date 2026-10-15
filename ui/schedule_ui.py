@@ -227,7 +227,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
             messagebox.showerror("Error", message)
 
     def load_tasks(self):
-        """Fetches and builds UI task cards."""
+        """Fetches, sorts by priority (High -> Medium -> Low), and builds UI task cards."""
         for widget in self.scroll_tasks.winfo_children():
             widget.destroy()
 
@@ -238,6 +238,10 @@ class ScheduleViewFrame(ctk.CTkFrame):
         if not tasks:
             ctk.CTkLabel(self.scroll_tasks, text="No tasks found for this filter.", text_color="#888888").pack(pady=20)
             return
+
+        # Auto-organize tasks by priority: High (0), Medium (1), Low (2), then by due date
+        priority_rank = {"High": 0, "Medium": 1, "Low": 2}
+        tasks.sort(key=lambda t: (priority_rank.get(t.get("priority", "Medium"), 1), t.get("due_date", "")))
 
         for task in tasks:
             card = ctk.CTkFrame(self.scroll_tasks, fg_color="#2B2B3D", corner_radius=8)

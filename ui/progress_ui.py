@@ -3,7 +3,7 @@ from logic.progress import ProgressTracker
 
 
 class ProgressViewFrame(ctk.CTkFrame):
-    """Progress & Analytics Workspace featuring Subject Notes Dropdown, Quiz Scores, and Completed Tasks."""
+    """Progress & Analytics Workspace featuring Monthly Challenges, Subject Notes, Quiz Scores, and Completed Tasks."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -26,18 +26,21 @@ class ProgressViewFrame(ctk.CTkFrame):
         self.card_hours = self._create_metric_card(self.metrics_frame, "Study Hours", "0 hrs", "#8B5CF6", 3)
 
         # =============================================================
-        # MAIN SCROLLABLE CONTENT AREA (3 SECTIONS)
+        # MAIN SCROLLABLE CONTENT AREA (4 SECTIONS)
         # =============================================================
         self.scroll_container = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll_container.pack(fill="both", expand=True, padx=10, pady=5)
 
-        # SECTION 1: NOTES PER SUBJECT (DROPDOWN WITH NUMBER INDICATOR)
+        # SECTION 1: MONTHLY PRODUCTIVITY CHALLENGES
+        self.build_badges_section()
+
+        # SECTION 2: NOTES PER SUBJECT (DROPDOWN WITH NUMBER INDICATOR)
         self.build_notes_section()
 
-        # SECTION 2: QUIZ GENERATOR SCORES & HISTORY
+        # SECTION 3: QUIZ GENERATOR SCORES & HISTORY
         self.build_quiz_section()
 
-        # SECTION 3: COMPLETED TASKS LIST
+        # SECTION 4: COMPLETED TASKS LIST
         self.build_tasks_section()
 
     def _create_metric_card(self, parent, title, initial_val, color, col_idx):
@@ -59,8 +62,21 @@ class ProgressViewFrame(ctk.CTkFrame):
     # SECTION BUILDERS
     # =============================================================
 
+    def build_badges_section(self):
+        """Section 1: Monthly Productivity Challenges Grid."""
+        self.sec_badges_frame = ctk.CTkFrame(self.scroll_container, fg_color="#1E1E2E", corner_radius=10)
+        self.sec_badges_frame.pack(fill="x", padx=5, pady=8)
+
+        ctk.CTkLabel(
+            self.sec_badges_frame, text="🏆 Monthly Productivity Challenges", font=("Poppins", 15, "bold"), text_color="#FFFFFF"
+        ).pack(anchor="w", padx=20, pady=(15, 5))
+
+        self.sec_badges_content = ctk.CTkFrame(self.sec_badges_frame, fg_color="transparent")
+        self.sec_badges_content.pack(fill="x", padx=15, pady=(0, 15))
+        self.sec_badges_content.grid_columnconfigure((0, 1), weight=1)
+
     def build_notes_section(self):
-        """Section 1: Subject notes breakdown with count indicator and topic dropdown."""
+        """Section 2: Subject notes breakdown with count indicator and topic dropdown."""
         self.sec1_frame = ctk.CTkFrame(self.scroll_container, fg_color="#1E1E2E", corner_radius=10)
         self.sec1_frame.pack(fill="x", padx=5, pady=8)
 
@@ -72,7 +88,7 @@ class ProgressViewFrame(ctk.CTkFrame):
         self.sec1_content.pack(fill="x", padx=15, pady=(0, 15))
 
     def build_quiz_section(self):
-        """Section 2: Quiz Generator Scores History."""
+        """Section 3: Quiz Generator Scores History."""
         self.sec2_frame = ctk.CTkFrame(self.scroll_container, fg_color="#1E1E2E", corner_radius=10)
         self.sec2_frame.pack(fill="x", padx=5, pady=8)
 
@@ -84,7 +100,7 @@ class ProgressViewFrame(ctk.CTkFrame):
         self.sec2_content.pack(fill="x", padx=15, pady=(0, 15))
 
     def build_tasks_section(self):
-        """Section 3: Completed Tasks List."""
+        """Section 4: Completed Tasks List."""
         self.sec3_frame = ctk.CTkFrame(self.scroll_container, fg_color="#1E1E2E", corner_radius=10)
         self.sec3_frame.pack(fill="x", padx=5, pady=8)
 
@@ -109,7 +125,34 @@ class ProgressViewFrame(ctk.CTkFrame):
         self.card_quiz.configure(text=summary["avg_quiz_score"])
         self.card_hours.configure(text=f"{summary['total_study_hours']} hrs")
 
-        # 1. Populate Notes per Subject Dropdown
+        # 1. Populate Monthly Challenges Grid
+        for widget in self.sec_badges_content.winfo_children():
+            widget.destroy()
+
+        badges = self.progress_logic.get_task_badges(user_id)
+        for idx, badge in enumerate(badges):
+            row = idx // 2
+            col = idx % 2
+
+            badge_card = ctk.CTkFrame(self.sec_badges_content, fg_color="#2B2B3D", corner_radius=8)
+            badge_card.grid(row=row, column=col, sticky="nsew", padx=6, pady=6)
+
+            header_f = ctk.CTkFrame(badge_card, fg_color="transparent")
+            header_f.pack(fill="x", padx=12, pady=(10, 2))
+
+            ctk.CTkLabel(header_f, text=badge["icon"], font=("Poppins", 18)).pack(side="left", padx=(0, 8))
+
+            title_text = f"{badge['title']} {'✓' if badge['unlocked'] else ''}"
+            t_color = "#10B981" if badge["unlocked"] else "#FFFFFF"
+            ctk.CTkLabel(header_f, text=title_text, font=("Poppins", 12, "bold"), text_color=t_color).pack(side="left")
+
+            ctk.CTkLabel(badge_card, text=badge["description"], font=("Poppins", 10), text_color="#AAAAAA").pack(anchor="w", padx=12, pady=(0, 4))
+
+            prog_str = f"Progress: {badge['current']} / {badge['target']} ({badge['progress_percentage']}%)"
+            p_color = "#3B82F6" if not badge["unlocked"] else "#10B981"
+            ctk.CTkLabel(badge_card, text=prog_str, font=("Poppins", 10, "bold"), text_color=p_color).pack(anchor="w", padx=12, pady=(0, 10))
+
+        # 2. Populate Notes per Subject Dropdown
         for widget in self.sec1_content.winfo_children():
             widget.destroy()
 
@@ -121,11 +164,9 @@ class ProgressViewFrame(ctk.CTkFrame):
                 row_frame = ctk.CTkFrame(self.sec1_content, fg_color="#2B2B3D", corner_radius=8)
                 row_frame.pack(fill="x", pady=4, padx=5)
 
-                # Subject Name & Number Indicator
                 count_text = f"📚 {subject}  ({len(notes)} note{'s' if len(notes) > 1 else ''})"
                 ctk.CTkLabel(row_frame, text=count_text, font=("Poppins", 12, "bold"), text_color="#3B82F6").pack(side="left", padx=15, pady=10)
 
-                # Dropdown of Topic Titles inside Subject
                 topic_titles = [n["title"] for n in notes]
                 topic_dropdown = ctk.CTkOptionMenu(
                     row_frame,
@@ -139,7 +180,7 @@ class ProgressViewFrame(ctk.CTkFrame):
                 topic_dropdown.set("View Topics...")
                 topic_dropdown.pack(side="right", padx=15, pady=8)
 
-        # 2. Populate Quiz Scores History
+        # 3. Populate Quiz Scores History
         for widget in self.sec2_content.winfo_children():
             widget.destroy()
 
@@ -157,7 +198,7 @@ class ProgressViewFrame(ctk.CTkFrame):
                 ctk.CTkLabel(q_card, text=q["quiz_title"], font=("Poppins", 12, "bold"), text_color="#FFFFFF").pack(side="left", padx=15, pady=8)
                 ctk.CTkLabel(q_card, text=score_str, font=("Poppins", 12, "bold"), text_color="#10B981").pack(side="right", padx=15, pady=8)
 
-        # 3. Populate Completed Tasks
+        # 4. Populate Completed Tasks
         for widget in self.sec3_content.winfo_children():
             widget.destroy()
 
