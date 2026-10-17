@@ -6,136 +6,172 @@ from logic.schedule import ScheduleManager
 
 
 class ScheduleViewFrame(ctk.CTkFrame):
-    """Schedule Workspace featuring Task Manager, Due Date Picker Calendar, and Study Planner."""
+    """Schedule Workspace featuring 3-Panel Layout: Monthly Calendar, Daily Agenda, and Task Manager."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
         self.schedule_logic = ScheduleManager()
 
-        # Track active month and year for monthly calendar view
+        # Track active date and month
         today = datetime.date.today()
         self.current_year = today.year
         self.current_month = today.month
         self.selected_date_str = today.strftime("%Y-%m-%d")
+        self.active_tab = "Calendar"
 
-        # Grid configuration: Left side = Calendar & Add Task, Right side = Task Cards List
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        # Grid configuration: 3 Columns matching layout structure
+        self.grid_columnconfigure(0, weight=2)  # Column 0: Monthly Calendar
+        self.grid_columnconfigure(1, weight=2)  # Column 1: Daily Agenda / Schedule
+        self.grid_columnconfigure(2, weight=2)  # Column 2: My Tasks
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # LEFT PANEL: MONTHLY CALENDAR & TASK CREATION FORM
+        # COLUMN 0: MONTHLY CALENDAR PANEL
         # =============================================================
-        self.left_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
-        self.left_panel.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.cal_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.cal_panel.grid(row=0, column=0, sticky="nsew", padx=6, pady=10)
+        self.cal_panel.grid_rowconfigure(2, weight=1)
+        self.cal_panel.grid_columnconfigure(0, weight=1)
 
-        # 1. Calendar Navigation Header
-        self.cal_header = ctk.CTkFrame(self.left_panel, fg_color="transparent")
-        self.cal_header.pack(fill="x", padx=15, pady=(15, 5))
+        # Top View Toggles (Calendar | Tasks)
+        cal_top_nav = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
+        cal_top_nav.pack(fill="x", padx=12, pady=(12, 8))
+        
+        ctk.CTkLabel(cal_top_nav, text="Schedule", font=("Poppins", 16, "bold"), text_color="#FFFFFF").pack(side="left")
+        
+        toggle_frame = ctk.CTkFrame(cal_top_nav, fg_color="#2B2B3D", corner_radius=6)
+        toggle_frame.pack(side="right")
+        
+        self.btn_tab_cal = ctk.CTkButton(toggle_frame, text="CALENDAR", width=75, height=24, font=("Poppins", 9, "bold"), fg_color="#3B82F6", command=lambda: self.switch_tab("Calendar"))
+        self.btn_tab_cal.pack(side="left", padx=2, pady=2)
+        
+        self.btn_tab_tsk = ctk.CTkButton(toggle_frame, text="TASKS", width=65, height=24, font=("Poppins", 9, "bold"), fg_color="transparent", text_color="#AAAAAA", command=lambda: self.switch_tab("Tasks"))
+        self.btn_tab_tsk.pack(side="right", padx=2, pady=2)
 
-        self.btn_prev_month = ctk.CTkButton(
-            self.cal_header, text="◀", width=35, height=28, fg_color="#2B2B3D", command=self.prev_month
-        )
+        # Month Navigation Header
+        self.cal_header = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
+        self.cal_header.pack(fill="x", padx=12, pady=(5, 8))
+
+        self.btn_prev_month = ctk.CTkButton(self.cal_header, text="◀", width=30, height=26, fg_color="#2B2B3D", command=self.prev_month)
         self.btn_prev_month.pack(side="left")
 
-        self.lbl_month_year = ctk.CTkLabel(
-            self.cal_header, text="", font=("Poppins", 15, "bold"), text_color="#FFFFFF"
-        )
+        self.lbl_month_year = ctk.CTkLabel(self.cal_header, text="", font=("Poppins", 13, "bold"), text_color="#FFFFFF")
         self.lbl_month_year.pack(side="left", expand=True)
 
-        self.btn_next_month = ctk.CTkButton(
-            self.cal_header, text="▶", width=35, height=28, fg_color="#2B2B3D", command=self.next_month
-        )
+        self.btn_next_month = ctk.CTkButton(self.cal_header, text="▶", width=30, height=26, fg_color="#2B2B3D", command=self.next_month)
         self.btn_next_month.pack(side="right")
 
-        # 2. Calendar Days Grid Container
-        self.cal_grid_frame = ctk.CTkFrame(self.left_panel, fg_color="#2B2B3D", corner_radius=8)
-        self.cal_grid_frame.pack(fill="x", padx=15, pady=8)
+        # Calendar Days Grid Container
+        self.cal_grid_frame = ctk.CTkFrame(self.cal_panel, fg_color="#2B2B3D", corner_radius=8)
+        self.cal_grid_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
-        # 3. Task Creation Form
-        ctk.CTkLabel(
-            self.left_panel, text="➕ Add New Task / Deadline", font=("Poppins", 14, "bold"), text_color="#FFFFFF"
-        ).pack(anchor="w", padx=15, pady=(10, 5))
+        # =============================================================
+        # COLUMN 1: DAILY AGENDA / SCHEDULE PANEL
+        # =============================================================
+        self.agenda_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.agenda_panel.grid(row=0, column=1, sticky="nsew", padx=6, pady=10)
+        self.agenda_panel.grid_rowconfigure(2, weight=1)
+        self.agenda_panel.grid_columnconfigure(0, weight=1)
 
-        # Selected Date Label Indicator
-        self.lbl_selected_date = ctk.CTkLabel(
-            self.left_panel, text=f"Due Date: {self.selected_date_str}", font=("Poppins", 11), text_color="#3B82F6"
-        )
-        self.lbl_selected_date.pack(anchor="w", padx=15, pady=(0, 5))
+        # Agenda Header (Date + Today Badge)
+        agenda_top_bar = ctk.CTkFrame(self.agenda_panel, fg_color="transparent")
+        agenda_top_bar.pack(fill="x", padx=12, pady=(12, 8))
 
-        self.entry_task_title = ctk.CTkEntry(self.left_panel, placeholder_text="Task Title (e.g., Submit Assignment)", height=32)
-        self.entry_task_title.pack(fill="x", padx=15, pady=(0, 6))
+        self.lbl_agenda_date = ctk.CTkLabel(agenda_top_bar, text="Today", font=("Poppins", 13, "bold"), text_color="#FFFFFF")
+        self.lbl_agenda_date.pack(side="left")
 
-        self.entry_task_desc = ctk.CTkEntry(self.left_panel, placeholder_text="Description / Notes", height=32)
-        self.entry_task_desc.pack(fill="x", padx=15, pady=(0, 6))
+        ctk.CTkButton(agenda_top_bar, text="TODAY", width=60, height=24, font=("Poppins", 9, "bold"), fg_color="#3B82F6", command=self.go_to_today).pack(side="right")
 
-        # Priority Selection
-        self.priority_row = ctk.CTkFrame(self.left_panel, fg_color="transparent")
-        self.priority_row.pack(fill="x", padx=15, pady=(0, 8))
+        # Scrollable Daily Agenda List
+        self.scroll_agenda = ctk.CTkScrollableFrame(self.agenda_panel, fg_color="transparent")
+        self.scroll_agenda.pack(fill="both", expand=True, padx=8, pady=(0, 10))
 
-        ctk.CTkLabel(self.priority_row, text="Priority:", font=("Poppins", 11)).pack(side="left", padx=(0, 10))
-        self.combo_priority = ctk.CTkOptionMenu(
-            self.priority_row, 
-            values=["Low", "Medium", "High"], 
-            height=30, 
-            fg_color="#2B2B3D", 
-            button_color="#3B82F6"
-        )
-        self.combo_priority.set("Medium")
-        self.combo_priority.pack(side="left", fill="x", expand=True)
-
-        # Add Task Button
-        self.btn_add_task = ctk.CTkButton(
-            self.left_panel,
-            text="📌 Save Task",
-            font=("Poppins", 12, "bold"),
-            fg_color="#10B981",
+        # Add Event / Study Session Button
+        bottom_action_row = ctk.CTkFrame(self.agenda_panel, fg_color="transparent")
+        bottom_action_row.pack(fill="x", padx=12, pady=(0, 12))
+        
+        ctk.CTkButton(
+            bottom_action_row, 
+            text="＋ Log Study Session", 
+            font=("Poppins", 11, "bold"), 
+            fg_color="#10B981", 
             hover_color="#059669",
-            height=36,
-            command=self.save_task
-        )
-        self.btn_add_task.pack(fill="x", padx=15, pady=(5, 15))
+            height=32,
+            command=self.open_log_session_dialog
+        ).pack(side="right")
 
         # =============================================================
-        # RIGHT PANEL: UPCOMING TASKS LIST & FILTER
+        # COLUMN 2: MY TASKS PANEL (Linked with ScheduleManager logic)
         # =============================================================
-        self.right_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
-        self.right_panel.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.tasks_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.tasks_panel.grid(row=0, column=2, sticky="nsew", padx=6, pady=10)
+        self.tasks_panel.grid_rowconfigure(2, weight=1)
+        self.tasks_panel.grid_columnconfigure(0, weight=1)
 
-        filter_row = ctk.CTkFrame(self.right_panel, fg_color="transparent")
-        filter_row.pack(fill="x", padx=15, pady=(15, 10))
+        # Tasks Header & Filter Pills
+        tasks_top_bar = ctk.CTkFrame(self.tasks_panel, fg_color="transparent")
+        tasks_top_bar.pack(fill="x", padx=12, pady=(12, 6))
 
-        ctk.CTkLabel(
-            filter_row, text="📋 Task Schedule", font=("Poppins", 16, "bold"), text_color="#FFFFFF"
-        ).pack(side="left")
+        ctk.CTkLabel(tasks_top_bar, text="My Tasks", font=("Poppins", 14, "bold"), text_color="#FFFFFF").pack(side="left")
 
-        self.combo_filter = ctk.CTkOptionMenu(
-            filter_row,
-            values=["All", "Pending", "In Progress", "Completed"],
-            width=110,
-            height=28,
-            fg_color="#2B2B3D",
-            button_color="#3B82F6",
-            command=lambda val: self.load_tasks()
-        )
-        self.combo_filter.set("All")
-        self.combo_filter.pack(side="right")
+        # Filter Pills Row (Supports All, Pending, Completed matching database filters)
+        pills_row = ctk.CTkFrame(self.tasks_panel, fg_color="transparent")
+        pills_row.pack(fill="x", padx=12, pady=(0, 8))
 
-        self.scroll_tasks = ctk.CTkScrollableFrame(self.right_panel, fg_color="transparent")
-        self.scroll_tasks.pack(fill="both", expand=True, padx=10, pady=10)
+        self.task_filter_var = ctk.StringVar(value="All")
+        for f_val in ["All", "Pending", "Completed"]:
+            btn = ctk.CTkButton(
+                pills_row,
+                text=f_val.upper(),
+                font=("Poppins", 9, "bold"),
+                width=65,
+                height=24,
+                fg_color="#3B82F6" if f_val == "All" else "#2B2B3D",
+                text_color="white" if f_val == "All" else "#AAAAAA",
+                command=lambda val=f_val: self.set_task_filter(val)
+            )
+            btn.pack(side="left", padx=2)
+            setattr(self, f"btn_pill_{f_val.lower()}", btn)
 
-        # Render Calendar
-        self.render_calendar()
+        # Scrollable Task Cards List
+        self.scroll_tasks = ctk.CTkScrollableFrame(self.tasks_panel, fg_color="transparent")
+        self.scroll_tasks.pack(fill="both", expand=True, padx=8, pady=(0, 10))
 
-    # =============================================================
-    # CALENDAR RENDER & INTERACTION
-    # =============================================================
+        # Quick Add Task Form at bottom of Tasks Panel (Saves to selected date)
+        quick_task_frame = ctk.CTkFrame(self.tasks_panel, fg_color="#2B2B3D", corner_radius=8)
+        quick_task_frame.pack(fill="x", padx=10, pady=(0, 10))
+
+        self.entry_quick_title = ctk.CTkEntry(quick_task_frame, placeholder_text="New Task Title...", height=28, font=("Poppins", 10))
+        self.entry_quick_title.pack(fill="x", padx=8, pady=(8, 4))
+
+        quick_sub_row = ctk.CTkFrame(quick_task_frame, fg_color="transparent")
+        quick_sub_row.pack(fill="x", padx=8, pady=(0, 8))
+
+        self.combo_quick_priority = ctk.CTkOptionMenu(quick_sub_row, values=["High", "Medium", "Low"], width=90, height=24, font=("Poppins", 9))
+        self.combo_quick_priority.set("Medium")
+        self.combo_quick_priority.pack(side="left")
+
+        ctk.CTkButton(
+            quick_sub_row, text="Add Task", width=70, height=24, font=("Poppins", 9, "bold"), fg_color="#10B981", command=self.save_quick_task
+        ).pack(side="right")
+
+        # Initial Renders
+        self.select_date(self.selected_date_str)
 
     def _get_user_id(self) -> int:
         if hasattr(self.controller, "current_user") and self.controller.current_user:
             return self.controller.current_user.get("id", 1)
         return 1
+
+    def switch_tab(self, tab_name: str):
+        self.active_tab = tab_name
+        if tab_name == "Calendar":
+            self.btn_tab_cal.configure(fg_color="#3B82F6", text_color="white")
+            self.btn_tab_tsk.configure(fg_color="transparent", text_color="#AAAAAA")
+        else:
+            self.btn_tab_tsk.configure(fg_color="#3B82F6", text_color="white")
+            self.btn_tab_cal.configure(fg_color="transparent", text_color="#AAAAAA")
 
     def prev_month(self):
         if self.current_month == 1:
@@ -153,23 +189,24 @@ class ScheduleViewFrame(ctk.CTkFrame):
             self.current_month += 1
         self.render_calendar()
 
+    def go_to_today(self):
+        today = datetime.date.today()
+        self.current_year = today.year
+        self.current_month = today.month
+        self.select_date(today.strftime("%Y-%m-%d"))
+
     def render_calendar(self):
-        """Builds monthly grid buttons for selecting due dates."""
         for widget in self.cal_grid_frame.winfo_children():
             widget.destroy()
 
         month_name = calendar.month_name[self.current_month]
         self.lbl_month_year.configure(text=f"{month_name} {self.current_year}")
 
-        # Day Headers (Mon, Tue, Wed...)
-        day_headers = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-        for col, day_str in enumerate(day_headers):
-            lbl = ctk.CTkLabel(self.cal_grid_frame, text=day_str, font=("Poppins", 10, "bold"), text_color="#AAAAAA")
-            lbl.grid(row=0, column=col, padx=4, pady=4)
+        day_headers = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+        for col, h in enumerate(day_headers):
+            ctk.CTkLabel(self.cal_grid_frame, text=h, font=("Poppins", 9, "bold"), text_color="#888888").grid(row=0, column=col, padx=2, pady=2)
 
-        # Generate Days Matrix
         cal_matrix = calendar.monthcalendar(self.current_year, self.current_month)
-
         for row_idx, week in enumerate(cal_matrix, start=1):
             for col_idx, day_num in enumerate(week):
                 if day_num != 0:
@@ -179,122 +216,157 @@ class ScheduleViewFrame(ctk.CTkFrame):
                     btn = ctk.CTkButton(
                         self.cal_grid_frame,
                         text=str(day_num),
-                        width=32,
+                        width=30,
                         height=28,
                         corner_radius=6,
                         fg_color="#3B82F6" if is_selected else "transparent",
                         hover_color="#2563EB",
                         font=("Poppins", 10, "bold" if is_selected else "normal"),
+                        text_color="white" if is_selected else "#DDDDDD",
                         command=lambda d=date_str: self.select_date(d)
                     )
-                    btn.grid(row=row_idx, column=col_idx, padx=2, pady=2)
+                    btn.grid(row=row_idx, column=col_idx, padx=1, pady=1)
 
     def select_date(self, date_str: str):
-        """Sets the selected due date from calendar click."""
         self.selected_date_str = date_str
-        self.lbl_selected_date.configure(text=f"Due Date: {self.selected_date_str}")
+        try:
+            dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+            self.lbl_agenda_date.configure(text=dt.strftime("%B %d, %Y"))
+        except Exception:
+            self.lbl_agenda_date.configure(text=date_str)
         self.render_calendar()
+        self.render_daily_agenda()
+        self.load_tasks()
 
-    # =============================================================
-    # TASK OPERATIONS & CARDS
-    # =============================================================
+    def render_daily_agenda(self):
+        """Fetches and displays tasks scheduled for the selected date as daily agenda items."""
+        for widget in self.scroll_agenda.winfo_children():
+            widget.destroy()
 
-    def save_task(self):
-        """Reads form fields and logs a new task in database."""
         user_id = self._get_user_id()
-        title = self.entry_task_title.get().strip()
-        desc = self.entry_task_desc.get().strip()
-        priority = self.combo_priority.get()
+        all_tasks = self.schedule_logic.get_user_tasks(user_id)
+        
+        # Filter tasks matching the selected calendar date
+        day_tasks = [t for t in all_tasks if t.get("due_date") == self.selected_date_str]
 
-        if not title:
-            messagebox.showwarning("Missing Title", "Please enter a title for the task.")
+        if not day_tasks:
+            ctk.CTkLabel(self.scroll_agenda, text=f"No deadlines or tasks for {self.selected_date_str}.", text_color="#888888", font=("Poppins", 10), wraplength=180).pack(pady=20)
             return
 
+        for task in day_tasks:
+            card = ctk.CTkFrame(self.scroll_agenda, fg_color="#2B2B3D", corner_radius=8)
+            card.pack(fill="x", pady=4, padx=2)
+
+            top_row = ctk.CTkFrame(card, fg_color="transparent")
+            top_row.pack(fill="x", padx=8, pady=(6, 2))
+
+            prio = task.get("priority", "Medium")
+            prio_color = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}.get(prio, "#3B82F6")
+
+            ctk.CTkLabel(top_row, text=f"📌 {prio} Priority", font=("Poppins", 9, "bold"), text_color=prio_color).pack(side="left")
+            ctk.CTkLabel(card, text=task["title"], font=("Poppins", 11, "bold"), text_color="#FFFFFF").pack(anchor="w", padx=8)
+            
+            if task.get("description"):
+                ctk.CTkLabel(card, text=task["description"], font=("Poppins", 10), text_color="#AAAAAA").pack(anchor="w", padx=8, pady=(0, 6))
+
+    def open_log_session_dialog(self):
+        """Simple inline or prompt handler to log study session duration via ScheduleManager."""
+        user_id = self._get_user_id()
+        success, msg = self.schedule_logic.log_study_session(user_id, subject="General Study", duration_minutes=45)
+        if success:
+            messagebox.showinfo("Success", "Logged 45 minutes of study session for today!")
+        else:
+            messagebox.showerror("Error", msg)
+
+    def set_task_filter(self, filter_name: str):
+        self.task_filter_var.set(filter_name)
+        for f_val in ["All", "Pending", "Completed"]:
+            btn = getattr(self, f"btn_pill_{f_val.lower()}")
+            if f_val == filter_name:
+                btn.configure(fg_color="#3B82F6", text_color="white")
+            else:
+                btn.configure(fg_color="#2B2B3D", text_color="#AAAAAA")
+        self.load_tasks()
+
+    def save_quick_task(self):
+        user_id = self._get_user_id()
+        title = self.entry_quick_title.get().strip()
+        priority = self.combo_quick_priority.get()
+
+        if not title:
+            messagebox.showwarning("Missing Title", "Please enter a task title.")
+            return
+
+        # Uses ScheduleManager.create_task logic[cite: 19]
         success, message = self.schedule_logic.create_task(
             user_id=user_id,
             title=title,
-            description=desc,
+            description="",
             due_date=self.selected_date_str,
             priority=priority
         )
 
         if success:
-            messagebox.showinfo("Success", message)
-            self.entry_task_title.delete(0, "end")
-            self.entry_task_desc.delete(0, "end")
+            self.entry_quick_title.delete(0, "end")
             self.load_tasks()
+            self.render_daily_agenda()
         else:
             messagebox.showerror("Error", message)
 
     def load_tasks(self):
-        """Fetches, sorts by priority (High -> Medium -> Low), and builds UI task cards."""
+        """Loads user tasks using ScheduleManager and maps them to filter and completion states[cite: 19]."""
         for widget in self.scroll_tasks.winfo_children():
             widget.destroy()
 
         user_id = self._get_user_id()
-        status_filter = self.combo_filter.get()
-        tasks = self.schedule_logic.get_user_tasks(user_id, status_filter=status_filter)
+        filter_val = self.task_filter_var.get()
+        status_map = {"All": None, "Pending": "Pending", "Completed": "Completed"}
+        
+        # Calls ScheduleManager.get_user_tasks[cite: 19]
+        tasks = self.schedule_logic.get_user_tasks(user_id, status_filter=status_map.get(filter_val))
 
         if not tasks:
-            ctk.CTkLabel(self.scroll_tasks, text="No tasks found for this filter.", text_color="#888888").pack(pady=20)
+            ctk.CTkLabel(self.scroll_tasks, text="No tasks found.", text_color="#888888", font=("Poppins", 10)).pack(pady=20)
             return
-
-        # Auto-organize tasks by priority: High (0), Medium (1), Low (2), then by due date
-        priority_rank = {"High": 0, "Medium": 1, "Low": 2}
-        tasks.sort(key=lambda t: (priority_rank.get(t.get("priority", "Medium"), 1), t.get("due_date", "")))
 
         for task in tasks:
             card = ctk.CTkFrame(self.scroll_tasks, fg_color="#2B2B3D", corner_radius=8)
-            card.pack(fill="x", pady=5, padx=5)
+            card.pack(fill="x", pady=4, padx=2)
 
-            # Priority Badge Color
-            prio_colors = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}
-            p_color = prio_colors.get(task.get("priority"), "#3B82F6")
+            row = ctk.CTkFrame(card, fg_color="transparent")
+            row.pack(fill="x", padx=8, pady=8)
 
-            # Header
-            header = ctk.CTkFrame(card, fg_color="transparent")
-            header.pack(fill="x", padx=10, pady=(8, 2))
-
-            ctk.CTkLabel(header, text=task["title"], font=("Poppins", 13, "bold"), text_color="#FFFFFF").pack(side="left")
-            ctk.CTkLabel(header, text=f"• {task['priority']}", font=("Poppins", 10, "bold"), text_color=p_color).pack(side="left", padx=5)
-
-            # Due Date & Description
-            ctk.CTkLabel(card, text=f"📅 Due: {task['due_date']}", font=("Poppins", 10), text_color="#AAAAAA").pack(anchor="w", padx=10)
-
-            if task.get("description"):
-                ctk.CTkLabel(card, text=task["description"], font=("Poppins", 11), text_color="#DDDDDD").pack(anchor="w", padx=10, pady=2)
-
-            # Action Row (Status Dropdown & Delete Button)
-            action_row = ctk.CTkFrame(card, fg_color="transparent")
-            action_row.pack(fill="x", padx=10, pady=(5, 8))
-
-            def make_status_updater(t_id):
-                return lambda new_val: self.schedule_logic.update_task_status(t_id, new_val)
-
-            status_menu = ctk.CTkOptionMenu(
-                action_row,
-                values=["Pending", "In Progress", "Completed"],
-                width=110,
-                height=26,
-                font=("Poppins", 10),
-                fg_color="#1E1E2E",
-                button_color="#3B82F6",
-                command=make_status_updater(task["id"])
+            is_completed = task.get("status") == "Completed"
+            
+            chk_btn = ctk.CTkButton(
+                row,
+                text="☑" if is_completed else "☐",
+                width=24,
+                height=24,
+                font=("Poppins", 12),
+                fg_color="transparent",
+                text_color="#10B981" if is_completed else "#AAAAAA",
+                command=lambda t_id=task["id"], current_status=task.get("status", "Pending"): self.toggle_task_completion(t_id, current_status)
             )
-            status_menu.set(task.get("status", "Pending"))
-            status_menu.pack(side="left")
+            chk_btn.pack(side="left", padx=(0, 6))
 
-            def make_deleter(t_id):
-                def do_delete():
-                    if messagebox.askyesno("Confirm Delete", "Delete this task?"):
-                        self.schedule_logic.delete_task(t_id)
-                        self.load_tasks()
-                return do_delete
+            info_frame = ctk.CTkFrame(row, fg_color="transparent")
+            info_frame.pack(side="left", fill="x", expand=True)
 
-            ctk.CTkButton(
-                action_row, text="🗑️ Delete", width=65, height=26, font=("Poppins", 10), fg_color="#EF4444", command=make_deleter(task["id"])
-            ).pack(side="right")
+            ctk.CTkLabel(info_frame, text=task["title"], font=("Poppins", 11, "bold"), text_color="#FFFFFF", anchor="w").pack(anchor="w")
+            ctk.CTkLabel(info_frame, text=f"Due {task['due_date']}", font=("Poppins", 9), text_color="#AAAAAA", anchor="w").pack(anchor="w")
+
+            prio = task.get("priority", "Medium")
+            prio_color = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}.get(prio, "#3B82F6")
+            ctk.CTkLabel(row, text=prio, font=("Poppins", 9, "bold"), text_color=prio_color).pack(side="right", padx=4)
+
+    def toggle_task_completion(self, task_id: int, current_status: str):
+        """Toggles status via ScheduleManager.update_task_status[cite: 19]."""
+        new_status = "Pending" if current_status == "Completed" else "Completed"
+        self.schedule_logic.update_task_status(task_id, new_status)
+        self.load_tasks()
+        self.render_daily_agenda()
 
     def on_show(self):
-        """Lifecycle method triggered when workspace is shown."""
         self.load_tasks()
+        self.render_daily_agenda()

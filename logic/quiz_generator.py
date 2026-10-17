@@ -2,9 +2,13 @@ import time
 import json
 import random
 import re
+import os
+from dotenv import load_config, load_dotenv
 from typing import List, Dict, Any, Tuple, Optional
 from database.db_connection import db
 from logic.my_notes import NotesManager
+
+load_dotenv()
 
 try:
     from google import genai
@@ -19,7 +23,7 @@ class QuizGenerator:
     def __init__(self):
         self.db = db
         self.notes_manager = NotesManager()
-        self.api_key = "AQ.Ab8RN6KGAyKblVRxBciJa7LKQsJGjmGdoJZ4kNn8c_V1oZVC4Q"
+        self.api_key = os.getenv("GCP_API_KEY")
         self.client = None
 
         if GENAI_AVAILABLE:
