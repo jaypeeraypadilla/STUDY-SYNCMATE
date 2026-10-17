@@ -33,9 +33,10 @@ class StudySyncMateApp(tk.Tk):
     except Exception as e:
       print(f"Failed to load application icon: {e}")
 
-    # Initialize Logic Backend
+    # Initialize Logic Backend & Global Settings State
     self.auth_manager = AuthManager()
     self.current_user = None
+    self.current_language = "English"  # Default global language
 
     # Container Frame
     self.container = tk.Frame(self, bg="#1E1E1E")
@@ -51,7 +52,7 @@ class StudySyncMateApp(tk.Tk):
     self.show_frame("WelcomeView")
 
   def init_views(self):
-    """Instantiates all UI views including the new WelcomeView."""
+    """Instantiates all UI views."""
     for ViewClass in (WelcomeView, LoginView, SignUpView, RecoveryView):
       page_name = ViewClass.__name__
       frame = ViewClass(parent=self.container, controller=self)
@@ -77,6 +78,16 @@ class StudySyncMateApp(tk.Tk):
       frame.grid(row=0, column=0, sticky="nsew")
 
     self.show_frame("DashboardView")
+
+  def set_global_language(self, lang: str):
+    """Updates the global language and notifies all active views/sub-views to refresh."""
+    if lang in ["English", "Filipino"]:
+      self.current_language = lang
+      
+      # Broadcast language change to DashboardView and its sub-views if active
+      dashboard = self.frames.get("DashboardView")
+      if dashboard and hasattr(dashboard, "refresh_language"):
+        dashboard.refresh_language()
 
   def logout(self):
     self.current_user = None

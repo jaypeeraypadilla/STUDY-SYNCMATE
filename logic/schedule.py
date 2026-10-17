@@ -57,6 +57,17 @@ class ScheduleManager:
             
             return [dict(row) for row in cursor.fetchall()]
 
+    def get_task_dates_for_month(self, user_id: int, year: int, month: int) -> List[str]:
+        """Returns a list of unique due dates that have pending/active tasks for a given month."""
+        month_str = f"{year:04d}-{month:02d}"
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT DISTINCT due_date FROM tasks 
+                WHERE user_id = ? AND due_date LIKE ? AND status != 'Completed'
+            """, (user_id, f"{month_str}%"))
+            return [row["due_date"] for row in cursor.fetchall()]
+
     def update_task_status(self, task_id: int, new_status: str) -> Tuple[bool, str]:
         """Updates task status ('Pending', 'In Progress', 'Completed')."""
         try:
@@ -87,6 +98,7 @@ class ScheduleManager:
 
     def log_study_session(self, user_id: int, subject: str, duration_minutes: int) -> Tuple[bool, str]:
         """Logs a completed study session duration."""
+        subject = subject.strip() if subject else "General Study"
         if duration_minutes <= 0:
             return False, "Duration must be greater than 0 minutes."
 
@@ -98,6 +110,6 @@ class ScheduleManager:
                     VALUES (?, ?, ?)
                 """, (user_id, subject, duration_minutes))
                 conn.commit()
-                return True, "Study session logged!"
+                return True, "Study session logged successfully!"
         except Exception as e:
             return False, f"Failed to log study session: {str(e)}"

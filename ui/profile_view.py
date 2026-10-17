@@ -1,10 +1,12 @@
+import os
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
+from PIL import Image
 from logic.user_prof import ProfileManager
 
 
 class ProfileViewFrame(ctk.CTkFrame):
-    """Embedded User Profile workspace for viewing and updating student details and security."""
+    """Embedded User Profile workspace for viewing and updating student details, avatar, and security."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -17,7 +19,7 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # LEFT PANEL: PERSONAL INFORMATION
+        # LEFT PANEL: PERSONAL INFORMATION & AVATAR
         # =============================================================
         self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
         self.info_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
@@ -28,6 +30,39 @@ class ProfileViewFrame(ctk.CTkFrame):
             font=("Poppins", 16, "bold"), 
             text_color="#FFFFFF"
         ).pack(anchor="w", padx=20, pady=(15, 10))
+
+        # Avatar & Change Photo Section
+        self.avatar_frame = ctk.CTkFrame(self.info_frame, fg_color="transparent")
+        self.avatar_frame.pack(fill="x", padx=20, pady=(5, 10))
+
+        self.avatar_canvas_frame = ctk.CTkFrame(self.avatar_frame, width=75, height=75, corner_radius=38, fg_color="#2B2B3D")
+        self.avatar_canvas_frame.pack(side="left", padx=(0, 15))
+        self.avatar_canvas_frame.pack_propagate(False)
+
+        self.lbl_avatar = ctk.CTkLabel(self.avatar_canvas_frame, text="👤", font=("Poppins", 26), text_color="#AAAAAA")
+        self.lbl_avatar.pack(expand=True)
+
+        avatar_btn_frame = ctk.CTkFrame(self.avatar_frame, fg_color="transparent")
+        avatar_btn_frame.pack(side="left", fill="y", expand=True)
+
+        ctk.CTkLabel(
+            avatar_btn_frame, 
+            text="Profile Picture", 
+            font=("Poppins", 12, "bold"), 
+            text_color="#FFFFFF"
+        ).pack(anchor="w", pady=(8, 2))
+
+        self.btn_change_avatar = ctk.CTkButton(
+            avatar_btn_frame,
+            text="📷 Change Photo",
+            font=("Poppins", 10, "bold"),
+            fg_color="#3B82F6",
+            hover_color="#2563EB",
+            width=110,
+            height=28,
+            command=self.select_profile_picture
+        )
+        self.btn_change_avatar.pack(anchor="w")
 
         # Username (Read-Only)
         ctk.CTkLabel(self.info_frame, text="Username:", font=("Poppins", 11), text_color="#AAAAAA").pack(anchor="w", padx=20, pady=(2, 0))
@@ -142,10 +177,30 @@ class ProfileViewFrame(ctk.CTkFrame):
             return self.controller.current_user.get("id")
         return None
 
+    def select_profile_picture(self):
+        """Opens file dialog to choose and save a new profile picture."""
+        user_id = self._get_user_id()
+        if not user_id:
+            messagebox.showerror("Session Error", "No active user session found.")
+            return
+
+        file_path = filedialog.askopenfilename(
+            title="Select Profile Picture",
+            filetypes=[("Image Files", "*.png *.jpg *.jpeg *.webp *.bmp")]
+        )
+        if file_path:
+            success, message, saved_path = self.profile_logic.update_profile_picture(user_id, file_path)
+            if success:
+                messagebox.showinfo("Success", message)
+                self.load_profile_data()
+                if hasattr(self.controller, "current_user") and self.controller.current_user:
+                    self.controller.current_user["profile_pic_path"] = saved_path
+            else:
+                messagebox.showerror("Error", message)
+
     def toggle_edit_mode(self):
         """Toggles between locked view mode and editable save mode."""
         if not self.is_editing:
-            # Switch to editing state
             self.is_editing = True
             self.entry_name.configure(state="normal")
             self.entry_age.configure(state="normal")
@@ -155,7 +210,6 @@ class ProfileViewFrame(ctk.CTkFrame):
 
             self.btn_edit_save.configure(text="💾 Save Changes", fg_color="#10B981", hover_color="#059669")
         else:
-            # Save updates and lock fields back
             user_id = self._get_user_id()
             if not user_id:
                 messagebox.showerror("Session Error", "No active user session found.")
@@ -178,7 +232,6 @@ class ProfileViewFrame(ctk.CTkFrame):
                 if hasattr(self.controller, "frames") and "DashboardView" in self.controller.frames:
                     self.controller.frames["DashboardView"].on_show()
 
-                # Lock fields back
                 self.is_editing = False
                 self.entry_name.configure(state="disabled")
                 self.entry_age.configure(state="disabled")
@@ -191,13 +244,27 @@ class ProfileViewFrame(ctk.CTkFrame):
                 messagebox.showerror("Error", message)
 
     def load_profile_data(self):
-        """Fetches current user profile from database and populates UI fields."""
+        """Fetches current user profile from database and populates UI fields and avatar."""
         user_id = self._get_user_id()
         if not user_id:
             return
 
         profile = self.profile_logic.get_user_profile(user_id)
         if profile:
+            # Render Profile Picture Avatar
+            pic_path = profile.get("profile_pic_path")
+            if pic_path and os.path.exists(pic_path):
+                try:
+                    pil_img = Image.open(pic_path)
+                    ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(75, 75))
+                    self.lbl_avatar.configure(text="", image=ctk_img)
+                    self.lbl_avatar.image = ctk_img
+                except Exception as e:
+                    print(f"[ProfileView] Error loading avatar: {e}")
+                    self.lbl_avatar.configure(text="👤", image=None)
+            else:
+                self.lbl_avatar.configure(text="👤", image=None)
+
             self.entry_username.configure(state="normal")
             self.entry_username.delete(0, "end")
             self.entry_username.insert(0, profile.get("username", ""))
@@ -250,7 +317,6 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.btn_edit_save.configure(text="✏️ Edit Changes", fg_color="#3B82F6", hover_color="#2563EB")
         self.load_profile_data()
         
-        # Ensure fields start disabled whenever view is opened
         self.entry_name.configure(state="disabled")
         self.entry_age.configure(state="disabled")
         self.combo_gender.configure(state="disabled")

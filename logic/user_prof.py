@@ -1,14 +1,32 @@
 import os
 import sqlite3
 import hashlib
+import shutil
 from typing import Tuple, Dict, Any, Optional
 from database.db_connection import db
 
 class ProfileManager:
-    """Handles fetching and updating user profile data and credentials."""
+    """Handles fetching and updating user profile data, profile pictures, and credentials."""
 
     def __init__(self):
         self.db = db
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.profile_pics_dir = os.path.join(base_dir, "uploads", "profile_pics")
+        os.makedirs(self.profile_pics_dir, exist_ok=True)
+        self._ensure_profile_pic_column()
+
+    def _ensure_profile_pic_column(self) -> None:
+        """Migrates database if profile_pic_path column is missing in users table."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(users)")
+                columns = [row["name"] for row in cursor.fetchall()]
+                if "profile_pic_path" not in columns:
+                    cursor.execute("ALTER TABLE users ADD COLUMN profile_pic_path TEXT DEFAULT NULL")
+                    conn.commit()
+        except Exception as e:
+            print(f"[ProfileManager] Migration check note: {e}")
 
     def _hash_password(self, password: str, salt: Optional[bytes] = None) -> Tuple[str, str]:
         """Hashes password using PBKDF2 HMAC SHA-256."""
@@ -22,7 +40,7 @@ class ProfileManager:
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, username, full_name, age, gender, course, year_level, security_question, created_at
+                SELECT id, username, full_name, age, gender, course, year_level, security_question, profile_pic_path, created_at
                 FROM users WHERE id = ?
             """, (user_id,))
             row = cursor.fetchone()
@@ -54,7 +72,6 @@ class ProfileManager:
                 """, (full_name, int(age_str), gender, course, year_level, user_id))
                 conn.commit()
 
-            # Return updated dictionary to sync with controller session
             updated_data = {
                 "id": user_id,
                 "full_name": full_name,
@@ -67,6 +84,32 @@ class ProfileManager:
 
         except Exception as e:
             return False, f"Failed to update profile: {str(e)}", None
+
+    def update_profile_picture(self, user_id: int, source_path: str) -> Tuple[bool, str, Optional[str]]:
+        """Copies an image file to profile_pics directory and updates database record."""
+        if not os.path.exists(source_path):
+            return False, "Source image file not found.", None
+
+        ext = os.path.splitext(source_path)[1].lower()
+        if ext not in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
+            return False, "Invalid image format. Please select PNG, JPG, JPEG, or WEBP.", None
+
+        unique_filename = f"user_{user_id}_{os.path.basename(source_path)}"
+        destination_path = os.path.join(self.profile_pics_dir, unique_filename)
+
+        try:
+            shutil.copy2(source_path, destination_path)
+
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE users SET profile_pic_path = ? WHERE id = ?
+                """, (destination_path, user_id))
+                conn.commit()
+
+            return True, "Profile picture updated successfully!", destination_path
+        except Exception as e:
+            return False, f"Failed to update profile picture: {str(e)}", None
 
     def change_password(self, user_id: int, current_pass: str, new_pass: str) -> Tuple[bool, str]:
         """Verifies old password and updates user credentials with new PBKDF2 hash and salt."""
@@ -94,7 +137,6 @@ class ProfileManager:
             if check_hash != stored_hash:
                 return False, "Current password is incorrect."
 
-            # Generate new hash and salt
             new_hash, new_salt = self._hash_password(new_pass)
             cursor.execute("""
                 UPDATE users SET password_hash = ?, salt = ? WHERE id = ?

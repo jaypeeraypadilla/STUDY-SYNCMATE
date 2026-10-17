@@ -1,11 +1,14 @@
 import calendar
 import datetime
+import os
 import customtkinter as ctk
+from PIL import Image
 from database.db_connection import db
 from logic.my_notes import NotesManager
 from logic.quiz_generator import QuizGenerator
 from logic.schedule import ScheduleManager
 from logic.progress import ProgressTracker
+from logic.user_prof import ProfileManager
 from ui.onboarding_tutorial import OnboardingTutorial
 from ui.notes_dashboard_ui import NotesDashboardView
 from ui.profile_view import ProfileViewFrame
@@ -25,6 +28,77 @@ class DashboardView(ctk.CTkFrame):
         self.quiz_logic = QuizGenerator()
         self.schedule_logic = ScheduleManager()
         self.progress_logic = ProgressTracker()
+        self.profile_logic = ProfileManager()
+
+        self.active_view_key = "home"
+
+        # Bilingual Translation Dictionary for Dashboard & Sidebar
+        self.translations = {
+            "English": {
+                "welcome_default": "Welcome to Study SyncMate",
+                "nav_header": "NAVIGATION",
+                "nav_home": "🏠 Home",
+                "nav_notes": "📓 My Notes",
+                "nav_quizzes": "📝 Quizzes",
+                "nav_schedule": "📅 Schedule",
+                "nav_progress": "📊 Progress",
+                "nav_settings": "⚙️ Settings",
+                "habit_text": "Better habits,\nBrighter future.",
+                "logout": "Logout",
+                "title_home": "Dashboard Overview",
+                "title_notes": "My Notes Workspace",
+                "title_profile": "User Profile Settings",
+                "title_quizzes": "Quizzes & Flashcards Generator",
+                "title_schedule": "Study Schedule & Task Planner",
+                "title_progress": "Academic Progress Analytics",
+                "title_settings": "App Settings & Help",
+                "hero_welcome": "Welcome back, {name}!",
+                "hero_sub": "Your goals are within reach. Let's keep learning!",
+                "stat_notes": "Total Notes",
+                "stat_tasks": "Pending Tasks",
+                "stat_quiz": "Quiz Average",
+                "stat_hours": "Study Hours",
+                "cal_header": "📅 Current Calendar",
+                "deadline_header": "🔔 Upcoming Deadlines",
+                "view_all": "View all",
+                "activity_header": "⚡ Recent Activity",
+                "no_tasks": "🎉 No pending tasks or deadlines.",
+                "tip_title": "💡 Tip",
+                "tip_sub": "Start creating notes and taking quizzes!"
+            },
+            "Filipino": {
+                "welcome_default": "Maligayang pagdating sa Study SyncMate",
+                "nav_header": "NAVIGASYON",
+                "nav_home": "🏠 Tahanan",
+                "nav_notes": "📓 Aking mga Tala",
+                "nav_quizzes": "📝 Mga Pagsusulit",
+                "nav_schedule": "📅 Iskedyul",
+                "nav_progress": "📊 Progreso",
+                "nav_settings": "⚙️ Mga Setting",
+                "habit_text": "Mas magandang gawi,\nMaliwanag na kinabukasan.",
+                "logout": "Mag-logout",
+                "title_home": "Pangkalahatang-ideya ng Dashboard",
+                "title_notes": "Workspace ng Aking mga Tala",
+                "title_profile": "Mga Setting ng Profile ng Gumagamit",
+                "title_quizzes": "Generator ng Pagsusulit at Flashcard",
+                "title_schedule": "Iskedyul ng Pag-aaral at Tagaplano",
+                "title_progress": "Analitika ng Akademikong Progreso",
+                "title_settings": "Mga Setting ng App at Tulong",
+                "hero_welcome": "Maligayang pagbabalik, {name}!",
+                "hero_sub": "Abot-kamay mo ang iyong mga layunin. Magpatuloy tayo sa pag-aaral!",
+                "stat_notes": "Kabuuang Tala",
+                "stat_tasks": "Mga Nakabinbing Gawain",
+                "stat_quiz": "Karaniwan sa Pagsusulit",
+                "stat_hours": "Oras ng Pag-aaral",
+                "cal_header": "📅 Kasalukuyang Kalendaryo",
+                "deadline_header": "🔔 Mga Darating na Deadline",
+                "view_all": "Tingnan lahat",
+                "activity_header": "⚡ Kamakailang Aktibidad",
+                "no_tasks": "🎉 Walang mga nakabinbing gawain o deadline.",
+                "tip_title": "💡 Tip",
+                "tip_sub": "Magsimulang gumawa ng mga tala at sumagot ng mga pagsusulit!"
+            }
+        }
 
         # Grid configuration: Row 0 (Top Header), Row 1 (Sidebar + Main Workspace)
         self.grid_columnconfigure(1, weight=1)
@@ -36,11 +110,9 @@ class DashboardView(ctk.CTkFrame):
         self.header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("gray90", "#1E1E2E"))
         self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
 
-        # Left Header Container (Logo Icon + Welcome Text)
         self.header_left_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         self.header_left_frame.pack(side="left", padx=15, pady=8)
 
-        # Logo Icon / Emblem
         self.logo_label = ctk.CTkLabel(
             self.header_left_frame, 
             text="📘", 
@@ -49,19 +121,17 @@ class DashboardView(ctk.CTkFrame):
         )
         self.logo_label.pack(side="left", padx=(0, 10))
 
-        # Welcome Label
         self.welcome_label = ctk.CTkLabel(
             self.header_left_frame, 
-            text="Welcome to Study SyncMate", 
+            text=self.get_text("welcome_default"), 
             font=("Poppins", 18, "bold"), 
             text_color=("gray10", "#FFFFFF")
         )
         self.welcome_label.pack(side="left")
 
-        # Header Buttons (Logout, Expanding Profile, Expanding Tutorial)
         self.btn_logout = ctk.CTkButton(
             self.header_frame, 
-            text="Logout", 
+            text=self.get_text("logout"), 
             width=80, 
             height=32,
             font=("Poppins", 12, "bold"), 
@@ -71,7 +141,6 @@ class DashboardView(ctk.CTkFrame):
         )
         self.btn_logout.pack(side="right", padx=(5, 15), pady=12)
 
-        # Expanding Profile Button
         self.btn_profile = ctk.CTkButton(
             self.header_frame, 
             text="👤", 
@@ -88,7 +157,6 @@ class DashboardView(ctk.CTkFrame):
         self.btn_profile.bind("<Enter>", lambda e: self.btn_profile.configure(text="👤 Profile", width=110))
         self.btn_profile.bind("<Leave>", lambda e: self.btn_profile.configure(text="👤", width=36))
 
-        # Expanding Tutorial Tour Button
         self.btn_tutorial = ctk.CTkButton(
             self.header_frame, 
             text="💡", 
@@ -112,26 +180,28 @@ class DashboardView(ctk.CTkFrame):
         self.sidebar_frame.grid(row=1, column=0, sticky="nsew", padx=(10, 5), pady=5)
         self.sidebar_frame.grid_propagate(False)
 
-        ctk.CTkLabel(
+        self.lbl_nav_title = ctk.CTkLabel(
             self.sidebar_frame, 
-            text="NAVIGATION", 
+            text=self.get_text("nav_header"), 
             font=("Poppins", 11, "bold"), 
             text_color=("gray40", "#AAAAAA")
-        ).pack(anchor="w", padx=15, pady=(15, 10))
+        )
+        self.lbl_nav_title.pack(anchor="w", padx=15, pady=(15, 10))
 
-        nav_buttons = [
-            ("🏠 Home", self.nav_home),
-            ("📓 My Notes", self.nav_notes),
-            ("📝 Quizzes", self.nav_quizzes),
-            ("📅 Schedule", self.nav_schedule),
-            ("📊 Progress", self.nav_progress),
-            ("⚙️ Settings", self.nav_settings),
+        self.sidebar_buttons = {}
+        nav_items = [
+            ("home", self.get_text("nav_home"), self.nav_home),
+            ("notes", self.get_text("nav_notes"), self.nav_notes),
+            ("quizzes", self.get_text("nav_quizzes"), self.nav_quizzes),
+            ("schedule", self.get_text("nav_schedule"), self.nav_schedule),
+            ("progress", self.get_text("nav_progress"), self.nav_progress),
+            ("settings", self.get_text("nav_settings"), self.nav_settings),
         ]
 
-        for text, command_fn in nav_buttons:
+        for key, text, command_fn in nav_items:
             btn = ctk.CTkButton(
                 self.sidebar_frame,
-                text=f"  {text}",
+                text=text,
                 font=("Poppins", 13),
                 anchor="w",
                 fg_color="transparent",
@@ -141,14 +211,16 @@ class DashboardView(ctk.CTkFrame):
                 command=command_fn
             )
             btn.pack(fill="x", padx=8, pady=3)
+            self.sidebar_buttons[key] = btn
 
         # Bottom Motivational Widget
         self.habit_widget = ctk.CTkFrame(self.sidebar_frame, fg_color=("gray95", "#1E1E2E"), corner_radius=8)
         self.habit_widget.pack(side="bottom", fill="x", padx=10, pady=15)
         ctk.CTkLabel(self.habit_widget, text="🎯", font=("Poppins", 18), text_color=("gray10", "#FFFFFF")).pack(pady=(8, 0))
-        ctk.CTkLabel(
-            self.habit_widget, text="Better habits,\nBrighter future.", font=("Poppins", 9, "bold"), text_color="#10B981", justify="center"
-        ).pack(pady=(2, 8))
+        self.lbl_habit = ctk.CTkLabel(
+            self.habit_widget, text=self.get_text("habit_text"), font=("Poppins", 9, "bold"), text_color="#10B981", justify="center"
+        )
+        self.lbl_habit.pack(pady=(2, 8))
 
         # =============================================================
         # 3. MAIN WORKSPACE & SUB-VIEW SWITCHER
@@ -158,47 +230,50 @@ class DashboardView(ctk.CTkFrame):
 
         self.content_title = ctk.CTkLabel(
             self.main_content, 
-            text="Dashboard Overview", 
+            text=self.get_text("title_home"), 
             font=("Poppins", 20, "bold"),
             text_color=("gray10", "#FFFFFF")
         )
         self.content_title.pack(anchor="nw", padx=25, pady=(15, 5))
 
-        # Container holding sub-view frames
         self.workspace_container = ctk.CTkFrame(self.main_content, fg_color="transparent")
         self.workspace_container.pack(fill="both", expand=True, padx=10, pady=5)
 
         self.sub_views = {}
 
         # -------------------------------------------------------------
-        # 3A. HOME SUB-VIEW (Theme-Adaptive & Fluid Layout)
+        # 3A. HOME SUB-VIEW
         # -------------------------------------------------------------
         self.home_view = ctk.CTkFrame(self.workspace_container, fg_color="transparent")
-        self.home_view.grid_columnconfigure(0, weight=3) # Left/Center section
-        self.home_view.grid_columnconfigure(1, weight=2) # Right panel section
+        self.home_view.grid_columnconfigure(0, weight=3)
+        self.home_view.grid_columnconfigure(1, weight=2)
         self.home_view.grid_rowconfigure(0, weight=1)
 
-        # --- LEFT/CENTER COLUMN ---
         self.center_column = ctk.CTkScrollableFrame(self.home_view, fg_color="transparent")
         self.center_column.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
-        # Hero Welcome Banner
         self.hero_banner = ctk.CTkFrame(self.center_column, fg_color=("white", "#1E1E2E"), corner_radius=10)
         self.hero_banner.pack(fill="x", pady=(0, 10))
+
+        self.hero_avatar_container = ctk.CTkFrame(self.hero_banner, width=64, height=64, corner_radius=32, fg_color=("gray90", "#2B2B3D"))
+        self.hero_avatar_container.pack(side="right", padx=20, pady=15)
+        self.hero_avatar_container.pack_propagate(False)
+
+        self.lbl_hero_avatar = ctk.CTkLabel(self.hero_avatar_container, text="👤", font=("Poppins", 22), text_color=("gray40", "#AAAAAA"))
+        self.lbl_hero_avatar.pack(expand=True)
 
         hero_text_box = ctk.CTkFrame(self.hero_banner, fg_color="transparent")
         hero_text_box.pack(side="left", fill="both", expand=True, padx=20, pady=15)
 
         self.lbl_hero_welcome = ctk.CTkLabel(
-            hero_text_box, text="Welcome back, Student!", font=("Poppins", 18, "bold"), text_color=("gray10", "#FFFFFF"), justify="left", wraplength=350
+            hero_text_box, text=self.get_text("hero_welcome").format(name="Student"), font=("Poppins", 18, "bold"), text_color=("gray10", "#FFFFFF"), justify="left", wraplength=330
         )
         self.lbl_hero_welcome.pack(anchor="w")
 
-        ctk.CTkLabel(
-            hero_text_box, text="Your goals are within reach. Let's keep learning!", font=("Poppins", 11), text_color=("gray50", "#AAAAAA"), justify="left", wraplength=350
-        ).pack(anchor="w", pady=(4, 0))
-
-        ctk.CTkLabel(self.hero_banner, text="🎓📚", font=("Poppins", 36), text_color=("gray10", "#FFFFFF")).pack(side="right", padx=25, pady=15)
+        self.lbl_hero_sub = ctk.CTkLabel(
+            hero_text_box, text=self.get_text("hero_sub"), font=("Poppins", 11), text_color=("gray50", "#AAAAAA"), justify="left", wraplength=330
+        )
+        self.lbl_hero_sub.pack(anchor="w", pady=(4, 0))
 
         # Quick Action Cards Grid
         self.quick_actions_grid = ctk.CTkFrame(self.center_column, fg_color="transparent")
@@ -215,12 +290,12 @@ class DashboardView(ctk.CTkFrame):
         self.stats_container.pack(fill="x", pady=5)
         self.stats_container.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.card_notes_val = self._create_stat_card(self.stats_container, "Total Notes", "0", "#3B82F6", 0)
-        self.card_tasks_val = self._create_stat_card(self.stats_container, "Pending Tasks", "0", "#10B981", 1)
-        self.card_quiz_val  = self._create_stat_card(self.stats_container, "Quiz Average", "0%", "#F59E0B", 2)
-        self.card_hours_val = self._create_stat_card(self.stats_container, "Study Hours", "0 hrs", "#8B5CF6", 3)
+        self.card_notes_lbl, self.card_notes_val = self._create_stat_card(self.stats_container, self.get_text("stat_notes"), "0", "#3B82F6", 0)
+        self.card_tasks_lbl, self.card_tasks_val = self._create_stat_card(self.stats_container, self.get_text("stat_tasks"), "0", "#10B981", 1)
+        self.card_quiz_lbl, self.card_quiz_val   = self._create_stat_card(self.stats_container, self.get_text("stat_quiz"), "0%", "#F59E0B", 2)
+        self.card_hours_lbl, self.card_hours_val = self._create_stat_card(self.stats_container, self.get_text("stat_hours"), "0 hrs", "#8B5CF6", 3)
 
-        # --- RIGHT COLUMN (Calendar, Upcoming Deadlines, Recent Activity) ---
+        # --- RIGHT COLUMN ---
         self.right_column = ctk.CTkScrollableFrame(self.home_view, fg_color="transparent")
         self.right_column.grid(row=0, column=1, sticky="nsew")
 
@@ -230,7 +305,8 @@ class DashboardView(ctk.CTkFrame):
 
         cal_header = ctk.CTkFrame(self.mini_cal_card, fg_color="transparent")
         cal_header.pack(fill="x", padx=12, pady=(10, 4))
-        ctk.CTkLabel(cal_header, text="📅 Current Calendar", font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
+        self.lbl_cal_header = ctk.CTkLabel(cal_header, text=self.get_text("cal_header"), font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF"))
+        self.lbl_cal_header.pack(side="left")
 
         self.cal_grid = ctk.CTkFrame(self.mini_cal_card, fg_color="transparent")
         self.cal_grid.pack(fill="x", padx=8, pady=(0, 10))
@@ -242,8 +318,11 @@ class DashboardView(ctk.CTkFrame):
 
         up_head = ctk.CTkFrame(self.notif_frame, fg_color="transparent")
         up_head.pack(fill="x", padx=12, pady=(10, 4))
-        ctk.CTkLabel(up_head, text="🔔 Upcoming Deadlines", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
-        ctk.CTkButton(up_head, text="View all", width=60, height=22, fg_color="transparent", text_color="#3B82F6", command=self.nav_schedule).pack(side="right")
+        self.lbl_deadline_header = ctk.CTkLabel(up_head, text=self.get_text("deadline_header"), font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF"))
+        self.lbl_deadline_header.pack(side="left")
+        
+        self.btn_view_all = ctk.CTkButton(up_head, text=self.get_text("view_all"), width=60, height=22, fg_color="transparent", text_color="#3B82F6", command=self.nav_schedule)
+        self.btn_view_all.pack(side="right")
 
         self.scroll_notifications = ctk.CTkFrame(self.notif_frame, fg_color="transparent")
         self.scroll_notifications.pack(fill="x", expand=True, padx=8, pady=(0, 10))
@@ -254,7 +333,8 @@ class DashboardView(ctk.CTkFrame):
 
         act_head = ctk.CTkFrame(self.activity_frame, fg_color="transparent")
         act_head.pack(fill="x", padx=12, pady=(10, 4))
-        ctk.CTkLabel(act_head, text="⚡ Recent Activity", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(side="left")
+        self.lbl_activity_header = ctk.CTkLabel(act_head, text=self.get_text("activity_header"), font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF"))
+        self.lbl_activity_header.pack(side="left")
 
         self.scroll_activity = ctk.CTkFrame(self.activity_frame, fg_color="transparent")
         self.scroll_activity.pack(fill="x", expand=True, padx=8, pady=(0, 10))
@@ -269,11 +349,13 @@ class DashboardView(ctk.CTkFrame):
         self.sub_views["progress"] = ProgressViewFrame(self.workspace_container, self.controller)
         self.sub_views["settings"] = SettingsViewFrame(self.workspace_container, self.controller)
 
-        # Display Home view by default
         self.show_sub_view("home")
 
+    def get_text(self, key: str) -> str:
+        lang = getattr(self.controller, "current_language", "English")
+        return self.translations.get(lang, self.translations["English"]).get(key, key)
+
     def open_tutorial(self):
-        """Launches the floating onboarding tutorial pointing to specific app sections."""
         targets = {
             "notes": getattr(self, "btn_notes_sidebar", None),
             "quizzes": getattr(self, "btn_quizzes_sidebar", None),
@@ -286,10 +368,11 @@ class DashboardView(ctk.CTkFrame):
         card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10)
         card.grid(row=0, column=col_idx, sticky="nsew", padx=4)
 
-        ctk.CTkLabel(card, text=title, font=("Poppins", 10), text_color=("gray50", "#AAAAAA"), wraplength=90).pack(anchor="w", padx=10, pady=(10, 0))
+        title_lbl = ctk.CTkLabel(card, text=title, font=("Poppins", 10), text_color=("gray50", "#AAAAAA"), wraplength=90)
+        title_lbl.pack(anchor="w", padx=10, pady=(10, 0))
         val_lbl = ctk.CTkLabel(card, text=initial_val, font=("Poppins", 15, "bold"), text_color=color)
         val_lbl.pack(anchor="w", padx=10, pady=(0, 10))
-        return val_lbl
+        return title_lbl, val_lbl
 
     def _create_quick_action_card(self, parent, icon, title, subtitle, command_fn, col):
         card = ctk.CTkFrame(parent, fg_color=("white", "#1E1E2E"), corner_radius=10)
@@ -312,7 +395,6 @@ class DashboardView(ctk.CTkFrame):
         ctk.CTkLabel(card, text=subtitle, font=("Poppins", 9), text_color=("gray50", "#8A8A9E"), wraplength=90).pack(anchor="w", padx=10, pady=(0, 10))
 
     def render_mini_calendar(self):
-        """Renders 7x5 month grid for mini calendar widget."""
         day_headers = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         for col, h in enumerate(day_headers):
             ctk.CTkLabel(self.cal_grid, text=h, font=("Poppins", 8, "bold"), text_color=("gray50", "#6C6C82")).grid(row=0, column=col, padx=2, pady=1)
@@ -341,10 +423,27 @@ class DashboardView(ctk.CTkFrame):
     def refresh_home_dashboard(self):
         user_id = self._get_user_id()
         
-        if hasattr(self.controller, "current_user") and self.controller.current_user:
-            name = self.controller.current_user.get("full_name", "Student")
+        profile = self.profile_logic.get_user_profile(user_id)
+        if profile:
+            if hasattr(self.controller, "current_user") and self.controller.current_user:
+                self.controller.current_user.update(profile)
+
+            name = profile.get("full_name", "Student")
             first_name = name.split()[0]
-            self.lbl_hero_welcome.configure(text=f"Welcome back, {first_name}!")
+            self.lbl_hero_welcome.configure(text=self.get_text("hero_welcome").format(name=first_name))
+
+            pic_path = profile.get("profile_pic_path")
+            if pic_path and os.path.exists(pic_path):
+                try:
+                    pil_img = Image.open(pic_path)
+                    ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(60, 60))
+                    self.lbl_hero_avatar.configure(text="", image=ctk_img)
+                    self.lbl_hero_avatar.image = ctk_img
+                except Exception as e:
+                    print(f"[DashboardView] Error loading avatar: {e}")
+                    self.lbl_hero_avatar.configure(text="👤", image=None)
+            else:
+                self.lbl_hero_avatar.configure(text="👤", image=None)
 
         stats = db.get_user_stats_summary(user_id)
         self.card_notes_val.configure(text=str(stats["total_notes"]))
@@ -363,7 +462,7 @@ class DashboardView(ctk.CTkFrame):
         if not active_tasks:
             ctk.CTkLabel(
                 self.scroll_notifications, 
-                text="🎉 No pending tasks or deadlines.", 
+                text=self.get_text("no_tasks"), 
                 text_color="#10B981", 
                 font=("Poppins", 11)
             ).pack(pady=10)
@@ -399,13 +498,60 @@ class DashboardView(ctk.CTkFrame):
             recent_items.append(("📓 Note Added", f"'{n['title']}' ({n['subject']})"))
 
         if not recent_items:
-            recent_items.append(("💡 Tip", "Start creating notes and taking quizzes!"))
+            recent_items.append((self.get_text("tip_title"), self.get_text("tip_sub")))
 
         for title, sub in recent_items:
             act_card = ctk.CTkFrame(self.scroll_activity, fg_color=("gray95", "#2B2B3D"), corner_radius=6)
             act_card.pack(fill="x", pady=2, padx=2)
             ctk.CTkLabel(act_card, text=title, font=("Poppins", 10, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=8, pady=(4, 0))
             ctk.CTkLabel(act_card, text=sub, font=("Poppins", 9), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=8, pady=(0, 4))
+    
+    def refresh_language(self):
+        """Refreshes all labels, titles, buttons, and sub-views when language changes."""
+        # Top Header
+        self.welcome_label.configure(text=self.get_text("welcome_default"))
+        self.btn_logout.configure(text=self.get_text("logout"))
+
+        # Sidebar
+        self.lbl_nav_title.configure(text=self.get_text("nav_header"))
+        self.sidebar_buttons["home"].configure(text=self.get_text("nav_home"))
+        self.sidebar_buttons["notes"].configure(text=self.get_text("nav_notes"))
+        self.sidebar_buttons["quizzes"].configure(text=self.get_text("nav_quizzes"))
+        self.sidebar_buttons["schedule"].configure(text=self.get_text("nav_schedule"))
+        self.sidebar_buttons["progress"].configure(text=self.get_text("nav_progress"))
+        self.sidebar_buttons["settings"].configure(text=self.get_text("nav_settings"))
+        self.lbl_habit.configure(text=self.get_text("habit_text"))
+
+        # Active Workspace Title
+        title_map = {
+            "home": "title_home",
+            "notes": "title_notes",
+            "profile": "title_profile",
+            "quizzes": "title_quizzes",
+            "schedule": "title_schedule",
+            "progress": "title_progress",
+            "settings": "title_settings"
+        }
+        self.content_title.configure(text=self.get_text(title_map.get(self.active_view_key, "title_home")))
+
+        # Home View Elements
+        self.lbl_hero_sub.configure(text=self.get_text("hero_sub"))
+        self.card_notes_lbl.configure(text=self.get_text("stat_notes"))
+        self.card_tasks_lbl.configure(text=self.get_text("stat_tasks"))
+        self.card_quiz_lbl.configure(text=self.get_text("stat_quiz"))
+        self.card_hours_lbl.configure(text=self.get_text("stat_hours"))
+        self.lbl_cal_header.configure(text=self.get_text("cal_header"))
+        self.lbl_deadline_header.configure(text=self.get_text("deadline_header"))
+        self.btn_view_all.configure(text=self.get_text("view_all"))
+        self.lbl_activity_header.configure(text=self.get_text("activity_header"))
+
+        # Refresh home dashboard contents & broadcast to active sub-views
+        if self.active_view_key == "home":
+            self.refresh_home_dashboard()
+
+        for sub_view in self.sub_views.values():
+            if hasattr(sub_view, "refresh_language"):
+                sub_view.refresh_language()
 
     def _get_user_id(self) -> int:
         if hasattr(self.controller, "current_user") and self.controller.current_user:
@@ -416,6 +562,7 @@ class DashboardView(ctk.CTkFrame):
     # SUB-VIEW NAVIGATION SWITCHER
     # =============================================================
     def show_sub_view(self, key: str):
+        self.active_view_key = key
         for frame in self.sub_views.values():
             frame.pack_forget()
 
@@ -428,45 +575,53 @@ class DashboardView(ctk.CTkFrame):
                 selected.on_show()
 
     def nav_home(self):
-        self.content_title.configure(text="Dashboard Overview")
+        self.active_view_key = "home"
+        self.content_title.configure(text=self.get_text("title_home"))
         self.show_sub_view("home")
 
     def nav_notes(self):
-        self.content_title.configure(text="My Notes Workspace")
+        self.active_view_key = "notes"
+        self.content_title.configure(text=self.get_text("title_notes"))
         self.show_sub_view("notes")
 
     def nav_profile(self):
-        self.content_title.configure(text="User Profile Settings")
+        self.active_view_key = "profile"
+        self.content_title.configure(text=self.get_text("title_profile"))
         self.show_sub_view("profile")
 
     def nav_quizzes(self):
-        self.content_title.configure(text="Quizzes & Flashcards Generator")
+        self.active_view_key = "quizzes"
+        self.content_title.configure(text=self.get_text("title_quizzes"))
         self.show_sub_view("quizzes")
 
     def nav_schedule(self):
-        self.content_title.configure(text="Study Schedule & Task Planner")
+        self.active_view_key = "schedule"
+        self.content_title.configure(text=self.get_text("title_schedule"))
         self.show_sub_view("schedule")
 
     def nav_progress(self):
-        self.content_title.configure(text="Academic Progress Analytics")
+        self.active_view_key = "progress"
+        self.content_title.configure(text=self.get_text("title_progress"))
         self.show_sub_view("progress")
 
     def nav_settings(self):
-        self.content_title.configure(text="App Settings & Help")
+        self.active_view_key = "settings"
+        self.content_title.configure(text=self.get_text("title_settings"))
         self.show_sub_view("settings")
 
     # =============================================================
     # CONTROLLER LIFECYCLE
     # =============================================================
     def on_show(self):
-        if hasattr(self.controller, "current_user") and self.controller.current_user:
-            user = self.controller.current_user
-            name = user.get("full_name", "Student")
-            course = user.get("course", "")
-            year = user.get("year_level", "")
+        user_id = self._get_user_id()
+        profile = self.profile_logic.get_user_profile(user_id)
+        if profile:
+            if hasattr(self.controller, "current_user") and self.controller.current_user:
+                self.controller.current_user.update(profile)
 
-            sub_info = f" ({course} – {year})" if course else ""
-            self.welcome_label.configure(text=f"Welcome back, {name}{sub_info}!")
+            name = profile.get("full_name", "Student")
+            first_name = name.split()[0]
+            self.lbl_hero_welcome.configure(text=self.get_text("hero_welcome").format(name=first_name))
 
         for key, frame in self.sub_views.items():
             if frame.winfo_ismapped():

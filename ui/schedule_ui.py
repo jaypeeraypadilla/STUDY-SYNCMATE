@@ -21,20 +21,20 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.active_tab = "Calendar"
 
         # Grid configuration: 3 Columns matching layout structure
-        self.grid_columnconfigure(0, weight=2)  # Column 0: Monthly Calendar
+        self.grid_columnconfigure(0, weight=2)  # Column 0: Monthly Calendar / Panel View Switcher
         self.grid_columnconfigure(1, weight=2)  # Column 1: Daily Agenda / Schedule
-        self.grid_columnconfigure(2, weight=2)  # Column 2: My Tasks
+        self.grid_columnconfigure(2, weight=2)  # Column 2: My Tasks Manager
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # COLUMN 0: MONTHLY CALENDAR PANEL
+        # COLUMN 0: CALENDAR & PANEL VIEW SWITCHER PANEL
         # =============================================================
         self.cal_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
         self.cal_panel.grid(row=0, column=0, sticky="nsew", padx=6, pady=10)
         self.cal_panel.grid_rowconfigure(2, weight=1)
         self.cal_panel.grid_columnconfigure(0, weight=1)
 
-        # Top View Toggles (Calendar | Tasks)
+        # Top View Toggles (Calendar | Tasks) - Now fully connected to switch views!
         cal_top_nav = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
         cal_top_nav.pack(fill="x", padx=12, pady=(12, 8))
         
@@ -49,8 +49,12 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.btn_tab_tsk = ctk.CTkButton(toggle_frame, text="TASKS", width=65, height=24, font=("Poppins", 9, "bold"), fg_color="transparent", text_color="#AAAAAA", command=lambda: self.switch_tab("Tasks"))
         self.btn_tab_tsk.pack(side="right", padx=2, pady=2)
 
+        # --- SUB-CONTAINER A: CALENDAR VIEW ---
+        self.calendar_view_container = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
+        self.calendar_view_container.pack(fill="both", expand=True, padx=0, pady=0)
+
         # Month Navigation Header
-        self.cal_header = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
+        self.cal_header = ctk.CTkFrame(self.calendar_view_container, fg_color="transparent")
         self.cal_header.pack(fill="x", padx=12, pady=(5, 8))
 
         self.btn_prev_month = ctk.CTkButton(self.cal_header, text="◀", width=30, height=26, fg_color="#2B2B3D", command=self.prev_month)
@@ -63,8 +67,18 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.btn_next_month.pack(side="right")
 
         # Calendar Days Grid Container
-        self.cal_grid_frame = ctk.CTkFrame(self.cal_panel, fg_color="#2B2B3D", corner_radius=8)
+        self.cal_grid_frame = ctk.CTkFrame(self.calendar_view_container, fg_color="#2B2B3D", corner_radius=8)
         self.cal_grid_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+
+        # --- SUB-CONTAINER B: CONNECTED TASKS QUICK VIEW (Toggled via "TASKS" button) ---
+        self.tasks_view_container = ctk.CTkFrame(self.cal_panel, fg_color="transparent")
+        
+        ctk.CTkLabel(
+            self.tasks_view_container, text="📌 All Deadlines & Overview", font=("Poppins", 12, "bold"), text_color="#FFFFFF"
+        ).pack(anchor="w", padx=12, pady=(5, 8))
+
+        self.scroll_panel_tasks = ctk.CTkScrollableFrame(self.tasks_view_container, fg_color="#2B2B3D", corner_radius=8)
+        self.scroll_panel_tasks.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
         # =============================================================
         # COLUMN 1: DAILY AGENDA / SCHEDULE PANEL
@@ -87,7 +101,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.scroll_agenda = ctk.CTkScrollableFrame(self.agenda_panel, fg_color="transparent")
         self.scroll_agenda.pack(fill="both", expand=True, padx=8, pady=(0, 10))
 
-        # Add Event / Study Session Button
+        # Log Study Session Button
         bottom_action_row = ctk.CTkFrame(self.agenda_panel, fg_color="transparent")
         bottom_action_row.pack(fill="x", padx=12, pady=(0, 12))
         
@@ -102,7 +116,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
         ).pack(side="right")
 
         # =============================================================
-        # COLUMN 2: MY TASKS PANEL (Linked with ScheduleManager logic)
+        # COLUMN 2: MY TASKS PANEL
         # =============================================================
         self.tasks_panel = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
         self.tasks_panel.grid(row=0, column=2, sticky="nsew", padx=6, pady=10)
@@ -115,7 +129,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
 
         ctk.CTkLabel(tasks_top_bar, text="My Tasks", font=("Poppins", 14, "bold"), text_color="#FFFFFF").pack(side="left")
 
-        # Filter Pills Row (Supports All, Pending, Completed matching database filters)
+        # Filter Pills Row
         pills_row = ctk.CTkFrame(self.tasks_panel, fg_color="transparent")
         pills_row.pack(fill="x", padx=12, pady=(0, 8))
 
@@ -138,7 +152,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.scroll_tasks = ctk.CTkScrollableFrame(self.tasks_panel, fg_color="transparent")
         self.scroll_tasks.pack(fill="both", expand=True, padx=8, pady=(0, 10))
 
-        # Quick Add Task Form at bottom of Tasks Panel (Saves to selected date)
+        # Quick Add Task Form at bottom of Tasks Panel
         quick_task_frame = ctk.CTkFrame(self.tasks_panel, fg_color="#2B2B3D", corner_radius=8)
         quick_task_frame.pack(fill="x", padx=10, pady=(0, 10))
 
@@ -165,13 +179,19 @@ class ScheduleViewFrame(ctk.CTkFrame):
         return 1
 
     def switch_tab(self, tab_name: str):
+        """Switches Column 0 between the monthly Calendar view and the connected Tasks overview list."""
         self.active_tab = tab_name
         if tab_name == "Calendar":
             self.btn_tab_cal.configure(fg_color="#3B82F6", text_color="white")
             self.btn_tab_tsk.configure(fg_color="transparent", text_color="#AAAAAA")
+            self.tasks_view_container.pack_forget()
+            self.calendar_view_container.pack(fill="both", expand=True, padx=0, pady=0)
         else:
             self.btn_tab_tsk.configure(fg_color="#3B82F6", text_color="white")
             self.btn_tab_cal.configure(fg_color="transparent", text_color="#AAAAAA")
+            self.calendar_view_container.pack_forget()
+            self.tasks_view_container.pack(fill="both", expand=True, padx=0, pady=0)
+            self.render_panel_tasks_overview()
 
     def prev_month(self):
         if self.current_month == 1:
@@ -206,23 +226,30 @@ class ScheduleViewFrame(ctk.CTkFrame):
         for col, h in enumerate(day_headers):
             ctk.CTkLabel(self.cal_grid_frame, text=h, font=("Poppins", 9, "bold"), text_color="#888888").grid(row=0, column=col, padx=2, pady=2)
 
+        user_id = self._get_user_id()
+        task_dates = set(self.schedule_logic.get_task_dates_for_month(user_id, self.current_year, self.current_month))
+
         cal_matrix = calendar.monthcalendar(self.current_year, self.current_month)
         for row_idx, week in enumerate(cal_matrix, start=1):
             for col_idx, day_num in enumerate(week):
                 if day_num != 0:
                     date_str = f"{self.current_year:04d}-{self.current_month:02d}-{day_num:02d}"
                     is_selected = (date_str == self.selected_date_str)
+                    has_tasks = date_str in task_dates
+
+                    btn_text = f"{day_num} •" if has_tasks else str(day_num)
+                    btn_color = "#3B82F6" if is_selected else ("#2B2B3D" if has_tasks else "transparent")
 
                     btn = ctk.CTkButton(
                         self.cal_grid_frame,
-                        text=str(day_num),
+                        text=btn_text,
                         width=30,
                         height=28,
                         corner_radius=6,
-                        fg_color="#3B82F6" if is_selected else "transparent",
+                        fg_color=btn_color,
                         hover_color="#2563EB",
-                        font=("Poppins", 10, "bold" if is_selected else "normal"),
-                        text_color="white" if is_selected else "#DDDDDD",
+                        font=("Poppins", 10, "bold" if is_selected or has_tasks else "normal"),
+                        text_color="white" if is_selected or has_tasks else "#DDDDDD",
                         command=lambda d=date_str: self.select_date(d)
                     )
                     btn.grid(row=row_idx, column=col_idx, padx=1, pady=1)
@@ -237,6 +264,8 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.render_calendar()
         self.render_daily_agenda()
         self.load_tasks()
+        if self.active_tab == "Tasks":
+            self.render_panel_tasks_overview()
 
     def render_daily_agenda(self):
         """Fetches and displays tasks scheduled for the selected date as daily agenda items."""
@@ -245,12 +274,10 @@ class ScheduleViewFrame(ctk.CTkFrame):
 
         user_id = self._get_user_id()
         all_tasks = self.schedule_logic.get_user_tasks(user_id)
-        
-        # Filter tasks matching the selected calendar date
         day_tasks = [t for t in all_tasks if t.get("due_date") == self.selected_date_str]
 
         if not day_tasks:
-            ctk.CTkLabel(self.scroll_agenda, text=f"No deadlines or tasks for {self.selected_date_str}.", text_color="#888888", font=("Poppins", 10), wraplength=180).pack(pady=20)
+            ctk.CTkLabel(self.scroll_agenda, text=f"No deadlines for {self.selected_date_str}.", text_color="#888888", font=("Poppins", 10), wraplength=180).pack(pady=20)
             return
 
         for task in day_tasks:
@@ -269,12 +296,47 @@ class ScheduleViewFrame(ctk.CTkFrame):
             if task.get("description"):
                 ctk.CTkLabel(card, text=task["description"], font=("Poppins", 10), text_color="#AAAAAA").pack(anchor="w", padx=8, pady=(0, 6))
 
-    def open_log_session_dialog(self):
-        """Simple inline or prompt handler to log study session duration via ScheduleManager."""
+    def render_panel_tasks_overview(self):
+        """Renders the connected all-tasks overview list in Column 0 when the 'TASKS' tab is clicked."""
+        for widget in self.scroll_panel_tasks.winfo_children():
+            widget.destroy()
+
         user_id = self._get_user_id()
-        success, msg = self.schedule_logic.log_study_session(user_id, subject="General Study", duration_minutes=45)
+        all_tasks = self.schedule_logic.get_user_tasks(user_id)
+
+        if not all_tasks:
+            ctk.CTkLabel(self.scroll_panel_tasks, text="No tasks recorded yet.", text_color="#888888", font=("Poppins", 10)).pack(pady=20)
+            return
+
+        for task in all_tasks:
+            card = ctk.CTkFrame(self.scroll_panel_tasks, fg_color="#1E1E2E", corner_radius=6)
+            card.pack(fill="x", pady=3, padx=2)
+
+            row = ctk.CTkFrame(card, fg_color="transparent")
+            row.pack(fill="x", padx=6, pady=6)
+
+            is_completed = task.get("status") == "Completed"
+            status_icon = "☑" if is_completed else "☐"
+
+            ctk.CTkLabel(row, text=status_icon, font=("Poppins", 11), text_color="#10B981" if is_completed else "#AAAAAA").pack(side="left", padx=(0, 6))
+            
+            info = ctk.CTkFrame(row, fg_color="transparent")
+            info.pack(side="left", fill="x", expand=True)
+
+            ctk.CTkLabel(info, text=task["title"], font=("Poppins", 10, "bold"), text_color="#FFFFFF", anchor="w").pack(anchor="w")
+            ctk.CTkLabel(info, text=f"Due: {task['due_date']}", font=("Poppins", 8), text_color="#AAAAAA", anchor="w").pack(anchor="w")
+
+    def open_log_session_dialog(self):
+        user_id = self._get_user_id()
+        dialog = ctk.CTkInputDialog(text="Enter study subject (e.g., ITE 260):", title="Log Study Session")
+        subject = dialog.get_input()
+        if not subject:
+            return
+
+        success, msg = self.schedule_logic.log_study_session(user_id, subject=subject, duration_minutes=60)
         if success:
-            messagebox.showinfo("Success", "Logged 45 minutes of study session for today!")
+            messagebox.showinfo("Success", f"Logged 60 minutes for '{subject}'!")
+            self.render_daily_agenda()
         else:
             messagebox.showerror("Error", msg)
 
@@ -297,7 +359,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
             messagebox.showwarning("Missing Title", "Please enter a task title.")
             return
 
-        # Uses ScheduleManager.create_task logic[cite: 19]
         success, message = self.schedule_logic.create_task(
             user_id=user_id,
             title=title,
@@ -310,11 +371,14 @@ class ScheduleViewFrame(ctk.CTkFrame):
             self.entry_quick_title.delete(0, "end")
             self.load_tasks()
             self.render_daily_agenda()
+            self.render_calendar()
+            if self.active_tab == "Tasks":
+                self.render_panel_tasks_overview()
         else:
             messagebox.showerror("Error", message)
 
     def load_tasks(self):
-        """Loads user tasks using ScheduleManager and maps them to filter and completion states[cite: 19]."""
+        """Loads user tasks using ScheduleManager and maps them to filter and completion states."""
         for widget in self.scroll_tasks.winfo_children():
             widget.destroy()
 
@@ -322,7 +386,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         filter_val = self.task_filter_var.get()
         status_map = {"All": None, "Pending": "Pending", "Completed": "Completed"}
         
-        # Calls ScheduleManager.get_user_tasks[cite: 19]
         tasks = self.schedule_logic.get_user_tasks(user_id, status_filter=status_map.get(filter_val))
 
         if not tasks:
@@ -360,13 +423,35 @@ class ScheduleViewFrame(ctk.CTkFrame):
             prio_color = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}.get(prio, "#3B82F6")
             ctk.CTkLabel(row, text=prio, font=("Poppins", 9, "bold"), text_color=prio_color).pack(side="right", padx=4)
 
+            def make_deleter(t_id):
+                return lambda: self.delete_task(t_id)
+
+            del_btn = ctk.CTkButton(
+                row, text="🗑️", width=26, height=24, font=("Poppins", 10),
+                fg_color="transparent", hover_color="#EF4444", text_color="#AAAAAA",
+                command=make_deleter(task["id"])
+            )
+            del_btn.pack(side="right", padx=2)
+
     def toggle_task_completion(self, task_id: int, current_status: str):
-        """Toggles status via ScheduleManager.update_task_status[cite: 19]."""
         new_status = "Pending" if current_status == "Completed" else "Completed"
         self.schedule_logic.update_task_status(task_id, new_status)
         self.load_tasks()
         self.render_daily_agenda()
+        self.render_calendar()
+        if self.active_tab == "Tasks":
+            self.render_panel_tasks_overview()
+
+    def delete_task(self, task_id: int):
+        if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this task?"):
+            self.schedule_logic.delete_task(task_id)
+            self.load_tasks()
+            self.render_daily_agenda()
+            self.render_calendar()
+            if self.active_tab == "Tasks":
+                self.render_panel_tasks_overview()
 
     def on_show(self):
         self.load_tasks()
         self.render_daily_agenda()
+        self.render_calendar()

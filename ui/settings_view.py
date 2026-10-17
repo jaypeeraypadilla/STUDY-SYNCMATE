@@ -3,36 +3,86 @@ from tkinter import messagebox
 
 
 class SettingsViewFrame(ctk.CTkFrame):
-    """Settings Workspace for managing App Theme, Font Scaling, Help, and About information."""
+    """Settings Workspace for managing App Theme, Language, Font Scaling, Help, and About information."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+
+        # Localization dictionary for English and Filipino
+        self.translations = {
+            "English": {
+                "title_appearance": "🎨 Appearance & Display",
+                "lbl_theme": "Interface Theme Mode:",
+                "lbl_lang": "Application Language:",
+                "lbl_scale": "Font Size & UI Scale:",
+                "about_ver": "Study SyncMate v0.1.8",
+                "about_desc": (
+                    "Study SyncMate is a centralized, modular academic desktop application "
+                    "designed to help students organize notes, track tasks, generate practice quizzes, "
+                    "and monitor study progress seamlessly.\n\n"
+                    "Developers: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), and Xywinn(Russel).\n\n\n\n"
+                    "Developed with Python, Tkinter, CustomTkinter, and SQLite."
+                ),
+                "tab_about": "About",
+                "tab_help": "Help & FAQ",
+                "faqs": [
+                    ("How do I save notes?", "Go to 'My Notes', enter your Subject and Topic, then click 'Save Note' or 'Save Text Note Only'."),
+                    ("How does Quiz Generator work?", "The AI quiz generator automatically pulls from your saved notes per subject to build practice tests and flashcards."),
+                    ("How do I track study time?", "Use the interactive Schedule calendar to plan deadlines and monitor task completion status."),
+                    ("Can I change my password?", "Yes! Navigate to the Profile workspace using the top header or settings to update your credentials.")
+                ]
+            },
+            "Filipino": {
+                "title_appearance": "🎨 Hitsura at Displey",
+                "lbl_theme": "Tema ng Kagamitan (Theme Mode):",
+                "lbl_lang": "Wika ng Aplikasyon (Language):",
+                "lbl_scale": "Laki ng Teks at Sukat ng UI:",
+                "about_ver": "Study SyncMate v0.1.8",
+                "about_desc": (
+                    "Ang Study SyncMate ay isang sentralisado at modular na desktop application "
+                    "na idinisenyo upang tulungan ang mga mag-aaral na isaayos ang mga tala, subaybayan ang mga gawain, "
+                    "lumikha ng mga pagsusulit, at bantayan ang kanilang progreso sa pag-aaral.\n\n"
+                    "Mga Developer: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), at Xywinn(Russel).\n\n\n\n"
+                    "Binuo gamit ang Python, Tkinter, CustomTkinter, at SQLite."
+                ),
+                "tab_about": "Tungkol sa App",
+                "tab_help": "Tulong at FAQ",
+                "faqs": [
+                    ("Paano mag-save ng mga tala?", "Pumunta sa 'My Notes', ilagay ang iyong Paksa at Paksa (Subject/Topic), pagkatapos ay i-click ang 'Save Note' o 'Save Text Note Only'."),
+                    ("Paano gumagana ang Quiz Generator?", "Awtomatikong kumukuha ang AI quiz generator mula sa iyong mga nakasaved na tala bawat paksa upang bumuo ng mga pagsusulit."),
+                    ("Paano ko masusubaybayan ang oras ng pag-aaral?", "Gamitin ang interactive na kalendaryo sa Schedule upang magplano ng mga deadline at suriin ang katayuan ng gawain."),
+                    ("Maaari ko bang palitan ang aking password?", "Oo! Pumunta sa Profile workspace gamit ang top header o settings upang i-update ang iyong mga kredensyal.")
+                ]
+            }
+        }
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
-        # LEFT PANEL: APPEARANCE, THEME & FONT SIZE SETTINGS
+        # LEFT PANEL: APPEARANCE, THEME, LANGUAGE & FONT SIZE SETTINGS
         # =============================================================
         self.appearance_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E1E"))
         self.appearance_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        ctk.CTkLabel(
+        self.lbl_appearance_title = ctk.CTkLabel(
             self.appearance_frame, 
-            text="🎨 Appearance & Display", 
+            text=self.get_text("title_appearance"), 
             font=("Poppins", 16, "bold"), 
             text_color=("gray10", "#FFFFFF")
-        ).pack(anchor="w", padx=20, pady=(15, 15))
+        )
+        self.lbl_appearance_title.pack(anchor="w", padx=20, pady=(15, 15))
 
         # 1. Theme Appearance Mode (Dark / Light / System)
-        ctk.CTkLabel(
+        self.lbl_theme_title = ctk.CTkLabel(
             self.appearance_frame, 
-            text="Interface Theme Mode:", 
+            text=self.get_text("lbl_theme"), 
             font=("Poppins", 12, "bold"), 
             text_color=("gray10", "#FFFFFF")
-        ).pack(anchor="w", padx=20, pady=(5, 2))
+        )
+        self.lbl_theme_title.pack(anchor="w", padx=20, pady=(5, 2))
         
         self.combo_theme = ctk.CTkOptionMenu(
             self.appearance_frame,
@@ -46,13 +96,36 @@ class SettingsViewFrame(ctk.CTkFrame):
         self.combo_theme.set("Light")
         self.combo_theme.pack(fill="x", padx=20, pady=(0, 15))
 
-        # 2. Font Size / UI Scaling Modifier
-        ctk.CTkLabel(
+        # 2. Language Feature Dropdown (English / Filipino)
+        self.lbl_lang_title = ctk.CTkLabel(
             self.appearance_frame, 
-            text="Font Size & UI Scale:", 
+            text=self.get_text("lbl_lang"), 
             font=("Poppins", 12, "bold"), 
             text_color=("gray10", "#FFFFFF")
-        ).pack(anchor="w", padx=20, pady=(5, 2))
+        )
+        self.lbl_lang_title.pack(anchor="w", padx=20, pady=(5, 2))
+
+        active_lang = getattr(self.controller, "current_language", "English")
+        self.combo_language = ctk.CTkOptionMenu(
+            self.appearance_frame,
+            values=["English", "Filipino"],
+            command=self.change_language,
+            height=35,
+            fg_color=("gray85", "#2B2B3D"),
+            button_color="#8B5CF6",
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.combo_language.set(active_lang)
+        self.combo_language.pack(fill="x", padx=20, pady=(0, 15))
+
+        # 3. Font Size / UI Scaling Modifier
+        self.lbl_scale_title = ctk.CTkLabel(
+            self.appearance_frame, 
+            text=self.get_text("lbl_scale"), 
+            font=("Poppins", 12, "bold"), 
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.lbl_scale_title.pack(anchor="w", padx=20, pady=(5, 2))
         
         self.combo_scaling = ctk.CTkOptionMenu(
             self.appearance_frame,
@@ -83,36 +156,37 @@ class SettingsViewFrame(ctk.CTkFrame):
         )
         self.info_tabview.pack(fill="both", expand=True, padx=15, pady=15)
 
-        self.tab_about = self.info_tabview.add("About")
-        self.tab_help = self.info_tabview.add("Help & FAQ")
+        self.tab_about = self.info_tabview.add(self.get_text("tab_about"))
+        self.tab_help = self.info_tabview.add(self.get_text("tab_help"))
 
         # --- ABOUT TAB CONTENT ---
-        ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.1.7", font=("Poppins", 16, "bold"), text_color="#3B82F6"
-        ).pack(anchor="w", padx=10, pady=(10, 5))
-
-        about_text = (
-            "Study SyncMate is a centralized, modular academic desktop application "
-            "designed to help students organize notes, track tasks, generate practice quizzes, "
-            "and monitor study progress seamlessly.\n\n"
-            "Developers: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), and Xywinn(Russel).\n\n\n\n"
-            "Developed with Python, Tkinter, CustomTkinter, and SQLite."
+        self.lbl_about_header = ctk.CTkLabel(
+            self.tab_about, text=self.get_text("about_ver"), font=("Poppins", 16, "bold"), text_color="#3B82F6"
         )
-        ctk.CTkLabel(
-            self.tab_about, text=about_text, font=("Poppins", 13), text_color=("gray20", "#DDDDDD"), justify="left", wraplength=320
-        ).pack(anchor="w", padx=10, pady=5)
+        self.lbl_about_header.pack(anchor="w", padx=10, pady=(10, 5))
+
+        self.lbl_about_body = ctk.CTkLabel(
+            self.tab_about, text=self.get_text("about_desc"), font=("Poppins", 13), text_color=("gray20", "#DDDDDD"), justify="left", wraplength=320
+        )
+        self.lbl_about_body.pack(anchor="w", padx=10, pady=5)
 
         # --- HELP & FAQ TAB CONTENT ---
         self.help_scroll = ctk.CTkScrollableFrame(self.tab_help, fg_color="transparent")
         self.help_scroll.pack(fill="both", expand=True, padx=5, pady=5)
 
-        faqs = [
-            ("How do I save notes?", "Go to 'My Notes', enter your Subject and Topic, then click 'Save Note' or 'Save Text Note Only'."),
-            ("How does Quiz Generator work?", "The AI quiz generator automatically pulls from your saved notes per subject to build practice tests and flashcards."),
-            ("How do I track study time?", "Use the interactive Schedule calendar to plan deadlines and monitor task completion status."),
-            ("Can I change my password?", "Yes! Navigate to the Profile workspace using the top header or settings to update your credentials.")
-        ]
+        self.populate_faqs()
 
+    def get_text(self, key: str) -> str:
+        """Retrieves localized text based on the active language from the controller."""
+        lang = getattr(self.controller, "current_language", "English")
+        return self.translations.get(lang, self.translations["English"]).get(key, key)
+
+    def populate_faqs(self):
+        """Populates FAQ items based on selected language."""
+        for widget in self.help_scroll.winfo_children():
+            widget.destroy()
+
+        faqs = self.get_text("faqs")
         for q, a in faqs:
             q_box = ctk.CTkFrame(self.help_scroll, fg_color=("gray95", "#1E1E2E"), corner_radius=6)
             q_box.pack(fill="x", pady=4, padx=2)
@@ -128,6 +202,30 @@ class SettingsViewFrame(ctk.CTkFrame):
         if new_mode in ["Dark", "Light", "System"]:
             ctk.set_appearance_mode(new_mode)
 
+    def change_language(self, lang: str):
+        """Notifies the controller to change the global language and refreshes UI."""
+        if hasattr(self.controller, "set_global_language"):
+            self.controller.set_global_language(lang)
+        self.refresh_ui_texts()
+
+    def refresh_ui_texts(self):
+        """Updates all visible labels and text elements when language changes."""
+        self.lbl_appearance_title.configure(text=self.get_text("title_appearance"))
+        self.lbl_theme_title.configure(text=self.get_text("lbl_theme"))
+        self.lbl_lang_title.configure(text=self.get_text("lbl_lang"))
+        self.lbl_scale_title.configure(text=self.get_text("lbl_scale"))
+
+        # Safely update Tab names if they exist
+        try:
+            self.info_tabview.rename("About", self.get_text("tab_about"))
+            self.info_tabview.rename("Help & FAQ", self.get_text("tab_help"))
+        except Exception:
+            pass
+
+        self.lbl_about_header.configure(text=self.get_text("about_ver"))
+        self.lbl_about_body.configure(text=self.get_text("about_desc"))
+        self.populate_faqs()
+
     def change_ui_scaling(self, scale_str: str):
         """Changes global font and widget scaling size."""
         scaling_map = {
@@ -141,4 +239,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
     def on_show(self):
         """Lifecycle method when switching to Settings view."""
-        pass
+        # Ensure dropdown matches global language state whenever settings opens
+        active_lang = getattr(self.controller, "current_language", "English")
+        self.combo_language.set(active_lang)
+        self.refresh_ui_texts()

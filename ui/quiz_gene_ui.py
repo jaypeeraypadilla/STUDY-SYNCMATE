@@ -4,7 +4,7 @@ from logic.quiz_generator import QuizGenerator
 
 
 class QuizGeneView(ctk.CTkFrame):
-    """Interactive Quiz & Flashcard workspace supporting Multiple Choice, Identification, Enumeration, and professional Flashcards via Gemini AI."""
+    """Unified Interactive Quiz & Flashcard workspace combining sketch layouts, animated hovers, and multi-mode AI generation."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -19,6 +19,8 @@ class QuizGeneView(ctk.CTkFrame):
         self.active_quiz_questions = []
         self.current_quiz_idx = 0
         self.user_score = 0
+        self.selected_subject = ctk.StringVar(value="")
+        self.selected_mode = ctk.StringVar(value="Multiple Choice")
         self.selected_option_var = ctk.StringVar(value="")
         self.enum_entry_vars = []
 
@@ -41,66 +43,174 @@ class QuizGeneView(ctk.CTkFrame):
             widget.destroy()
 
     # =============================================================
-    # SETUP SCREEN (Select Subject & Study Mode)
+    # 1. LANDING SETUP SCREEN (Sketch Layout + Subject/Mode Selection)
     # =============================================================
     def build_setup_screen(self):
         self.clear_container()
 
+        # Header Title & Subtitle
         ctk.CTkLabel(
             self.main_card, 
-            text="🧠 Intelligent Quiz & Flashcard Generator", 
+            text="Quiz & Flashcards", 
             font=("Poppins", 20, "bold"), 
             text_color=("gray10", "#FFFFFF")
-        ).pack(anchor="w", padx=25, pady=(20, 10))
+        ).pack(anchor="w", padx=25, pady=(20, 4))
 
         ctk.CTkLabel(
             self.main_card, 
-            text="Select a subject and test mode generated from your saved notes using Gemini AI:", 
+            text="Test your knowledge and build better recall with interactive quizzes and flashcards.", 
             font=("Poppins", 12), 
-            text_color=("gray30", "#AAAAAA")
+            text_color=("gray50", "#AAAAAA")
         ).pack(anchor="w", padx=25, pady=(0, 15))
+
+        # Two Main Feature Cards Container (Quizzes vs Flashcards) with Hover Animations
+        cards_row = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        cards_row.pack(fill="x", padx=20, pady=(0, 15))
+        cards_row.grid_columnconfigure((0, 1), weight=1)
+
+        # --- CARD 1: QUIZZES ---
+        self.quiz_card = ctk.CTkFrame(cards_row, fg_color=("#F3F4F6", "#2B2B3D"), corner_radius=12, border_width=2, border_color=("#F3F4F6", "#2B2B3D"))
+        self.quiz_card.grid(row=0, column=0, sticky="nsew", padx=8)
+
+        ctk.CTkLabel(self.quiz_card, text="📋?", font=("Poppins", 26)).pack(pady=(15, 2))
+        ctk.CTkLabel(self.quiz_card, text="Quizzes", font=("Poppins", 14, "bold"), text_color=("gray10", "#FFFFFF")).pack(pady=2)
+        ctk.CTkLabel(
+            self.quiz_card, 
+            text="Answer questions to improve your understanding.", 
+            font=("Poppins", 10), 
+            text_color=("gray50", "#AAAAAA"), 
+            justify="center", 
+            wraplength=200
+        ).pack(padx=15, pady=(2, 10))
+
+        self.btn_start_quiz = ctk.CTkButton(
+            self.quiz_card,
+            text="Start Quiz ➔",
+            font=("Poppins", 12, "bold"),
+            fg_color="#3B82F6",
+            hover_color="#2563EB",
+            height=34,
+            command=lambda: self.start_session("Quiz")
+        )
+        self.btn_start_quiz.pack(padx=20, pady=(0, 15), fill="x")
+
+        # --- CARD 2: FLASHCARDS ---
+        self.flash_card = ctk.CTkFrame(cards_row, fg_color=("#F3F4F6", "#2B2B3D"), corner_radius=12, border_width=2, border_color=("#F3F4F6", "#2B2B3D"))
+        self.flash_card.grid(row=0, column=1, sticky="nsew", padx=8)
+
+        ctk.CTkLabel(self.flash_card, text="🎴★", font=("Poppins", 26)).pack(pady=(15, 2))
+        ctk.CTkLabel(self.flash_card, text="Flashcards", font=("Poppins", 14, "bold"), text_color=("gray10", "#FFFFFF")).pack(pady=2)
+        ctk.CTkLabel(
+            self.flash_card, 
+            text="Review key concepts and definitions at your own pace.", 
+            font=("Poppins", 10), 
+            text_color=("gray50", "#AAAAAA"), 
+            justify="center", 
+            wraplength=200
+        ).pack(padx=15, pady=(2, 10))
+
+        self.btn_start_flash = ctk.CTkButton(
+            self.flash_card,
+            text="Start Flashcards ➔",
+            font=("Poppins", 12, "bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            height=34,
+            command=lambda: self.start_session("Flashcards")
+        )
+        self.btn_start_flash.pack(padx=20, pady=(0, 15), fill="x")
+
+        # Bind Hover Animations
+        self._bind_card_hover(self.quiz_card, "#3B82F6")
+        self._bind_card_hover(self.flash_card, "#10B981")
+
+        # --- SUBJECT SELECTION PILLS ---
+        ctk.CTkLabel(
+            self.main_card, text="Select Subject", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")
+        ).pack(anchor="w", padx=25, pady=(5, 4))
 
         user_id = self._get_user_id()
         subjects = self.quiz_logic.get_available_subjects(user_id)
+        if not subjects:
+            subjects = ["ITE 260", "ITE 366", "GEN 006", "OTHERS"]
 
-        ctk.CTkLabel(self.main_card, text="Subject:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
-        self.subject_dropdown = ctk.CTkOptionMenu(
-            self.main_card, 
-            values=subjects if subjects else ["No subjects available"],
-            height=38,
-            fg_color=("gray85", "#2B2B3D"),
-            button_color="#3B82F6",
-            text_color=("gray10", "#FFFFFF")
-        )
-        self.subject_dropdown.pack(fill="x", padx=25, pady=(0, 20))
+        if not self.selected_subject.get() or self.selected_subject.get() not in subjects:
+            self.selected_subject.set(subjects[0])
 
-        ctk.CTkLabel(self.main_card, text="Study Mode:", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=25, pady=(5, 2))
-        self.mode_dropdown = ctk.CTkOptionMenu(
-            self.main_card, 
-            values=[
-                "Flashcards Review", 
-                "Practice Quiz (Multiple Choice)", 
-                "Identification Quiz", 
-                "Enumeration Practice", 
-                "Comprehensive Mixed Quiz"
-            ],
-            height=38,
-            fg_color=("gray85", "#2B2B3D"),
-            button_color="#10B981",
-            text_color=("gray10", "#FFFFFF")
-        )
-        self.mode_dropdown.pack(fill="x", padx=25, pady=(0, 30))
+        pills_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        pills_frame.pack(anchor="w", padx=25, pady=(0, 10))
 
-        self.btn_start = ctk.CTkButton(
-            self.main_card,
-            text="🚀 Start AI Session",
-            font=("Poppins", 14, "bold"),
-            fg_color="#3B82F6",
-            hover_color="#2563EB",
-            height=42,
-            command=self.start_session
-        )
-        self.btn_start.pack(fill="x", padx=25, pady=10)
+        self.subject_pill_buttons = {}
+        for subj in subjects:
+            is_active = (subj == self.selected_subject.get())
+            pill_btn = ctk.CTkButton(
+                pills_frame,
+                text=subj,
+                font=("Poppins", 11, "bold"),
+                width=75,
+                height=28,
+                corner_radius=14,
+                fg_color="#3B82F6" if is_active else ("gray85", "#2B2B3D"),
+                text_color="white" if is_active else ("gray30", "#AAAAAA"),
+                command=lambda s=subj: self.select_subject_pill(s)
+            )
+            pill_btn.pack(side="left", padx=3)
+            self.subject_pill_buttons[subj] = pill_btn
+
+        # --- STUDY MODE SELECTION PILLS (Retaining Identification, Enumeration, & Mixed Modes) ---
+        ctk.CTkLabel(
+            self.main_card, text="Quiz Mode", font=("Poppins", 12, "bold"), text_color=("gray10", "#FFFFFF")
+        ).pack(anchor="w", padx=25, pady=(5, 4))
+
+        modes = ["Multiple Choice", "Identification", "Enumeration", "Comprehensive Mixed"]
+        modes_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        modes_frame.pack(anchor="w", padx=25, pady=(0, 15))
+
+        self.mode_pill_buttons = {}
+        for m in modes:
+            is_active = (m == self.selected_mode.get())
+            m_btn = ctk.CTkButton(
+                modes_frame,
+                text=m,
+                font=("Poppins", 10, "bold"),
+                width=110,
+                height=28,
+                corner_radius=14,
+                fg_color="#10B981" if is_active else ("gray85", "#2B2B3D"),
+                text_color="white" if is_active else ("gray30", "#AAAAAA"),
+                command=lambda md=m: self.select_mode_pill(md)
+            )
+            m_btn.pack(side="left", padx=3)
+            self.mode_pill_buttons[m] = m_btn
+
+    def _bind_card_hover(self, card_frame, border_color):
+        """Adds smooth animated hover feedback when the mouse points to cards."""
+        def on_enter(e):
+            card_frame.configure(border_color=border_color)
+        def on_leave(e):
+            card_frame.configure(border_color=("#F3F4F6", "#2B2B3D"))
+
+        card_frame.bind("<Enter>", on_enter)
+        card_frame.bind("<Leave>", on_leave)
+        for child in card_frame.winfo_children():
+            child.bind("<Enter>", on_enter)
+            child.bind("<Leave>", on_leave)
+
+    def select_subject_pill(self, subject: str):
+        self.selected_subject.set(subject)
+        for subj, btn in self.subject_pill_buttons.items():
+            if subj == subject:
+                btn.configure(fg_color="#3B82F6", text_color="white")
+            else:
+                btn.configure(fg_color=("gray85", "#2B2B3D"), text_color=("gray30", "#AAAAAA"))
+
+    def select_mode_pill(self, mode: str):
+        self.selected_mode.set(mode)
+        for md, btn in self.mode_pill_buttons.items():
+            if md == mode:
+                btn.configure(fg_color="#10B981", text_color="white")
+            else:
+                btn.configure(fg_color=("gray85", "#2B2B3D"), text_color=("gray30", "#AAAAAA"))
 
     def show_loading_state(self):
         """Displays loading UI while Gemini AI analyzes notes."""
@@ -123,18 +233,18 @@ class QuizGeneView(ctk.CTkFrame):
         ).pack()
         self.update_idletasks()
 
-    def start_session(self):
+    def start_session(self, mode_type: str):
         user_id = self._get_user_id()
-        subject = self.subject_dropdown.get()
-        mode = self.mode_dropdown.get()
+        subject = self.selected_subject.get()
+        mode = self.selected_mode.get()
 
-        if subject == "No subjects available" or not subject:
+        if not subject or subject == "No subjects available":
             messagebox.showwarning("Warning", "Please select a valid subject with saved notes.")
             return
 
         self.show_loading_state()
 
-        if "Flashcards" in mode:
+        if mode_type == "Flashcards":
             self.active_flashcards = self.quiz_logic.generate_flashcards(user_id, subject)
             if not self.active_flashcards:
                 messagebox.showinfo("Info", f"No notes found under subject '{subject}'.")
@@ -145,11 +255,11 @@ class QuizGeneView(ctk.CTkFrame):
             self.showing_hint = False
             self.build_flashcard_screen()
         else:
-            if "Multiple Choice" in mode:
+            if mode == "Multiple Choice":
                 self.active_quiz_questions = self.quiz_logic.generate_multiple_choice_questions(user_id, subject)
-            elif "Identification" in mode:
+            elif mode == "Identification":
                 self.active_quiz_questions = self.quiz_logic.generate_identification_questions(user_id, subject)
-            elif "Enumeration" in mode:
+            elif mode == "Enumeration":
                 self.active_quiz_questions = self.quiz_logic.generate_enumeration_questions(user_id, subject)
             else:
                 self.active_quiz_questions = self.quiz_logic.generate_practice_quiz(user_id, subject)
@@ -164,32 +274,35 @@ class QuizGeneView(ctk.CTkFrame):
             self.build_quiz_question_screen(subject)
 
     # =============================================================
-    # OPTIMIZED FLASHCARDS SCREEN (With Back Option)
+    # 2. FLASHCARDS REVIEW SCREEN (With Flip, Hints & Sketch Layout)
     # =============================================================
     def build_flashcard_screen(self):
         self.clear_container()
 
         card_data = self.active_flashcards[self.current_flashcard_idx]
+        total_cards = len(self.active_flashcards)
 
+        # Header Bar
         header_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=15)
 
-        ctk.CTkLabel(
-            header_frame, 
-            text=f"Flashcard {self.current_flashcard_idx + 1} of {len(self.active_flashcards)}", 
-            font=("Poppins", 14, "bold"), 
-            text_color="#3B82F6"
+        ctk.CTkButton(
+            header_frame, text="← Flashcards", fg_color="transparent", text_color="#3B82F6", font=("Poppins", 13, "bold"),
+            hover_color=("gray90", "#2B2B3D"), command=self.build_setup_screen
         ).pack(side="left")
 
-        ctk.CTkButton(
-            header_frame, text="❌ Exit", width=70, height=28, fg_color="#EF4444", command=self.build_setup_screen
-        ).pack(side="right")
+        progress_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        progress_frame.pack(side="right")
 
-        self.card_box = ctk.CTkFrame(self.main_card, fg_color=("gray95", "#2B2B3D"), corner_radius=12, height=250)
+        ctk.CTkLabel(
+            progress_frame, text=f"{self.current_flashcard_idx + 1}/{total_cards}", font=("Poppins", 11, "bold"), text_color=("gray50", "#AAAAAA")
+        ).pack(side="right", padx=(8, 0))
+
+        # Main Flashcard Box
+        self.card_box = ctk.CTkFrame(self.main_card, fg_color=("gray95", "#2B2B3D"), corner_radius=12, height=240)
         self.card_box.pack(fill="both", expand=True, padx=25, pady=10)
         self.card_box.pack_propagate(False)
 
-        # Mode Indicator (Front vs Back)
         mode_text = "❓ Front (Term / Question)" if not self.showing_answer else "💡 Back (Definition / Explanation)"
         ctk.CTkLabel(
             self.card_box, 
@@ -198,7 +311,6 @@ class QuizGeneView(ctk.CTkFrame):
             text_color=("#059669", "#10B981") if self.showing_answer else ("#3B82F6", "#60A5FA")
         ).pack(anchor="w", padx=20, pady=(15, 2))
 
-        # Main Card Content (Front or Back)
         display_text = card_data["front"] if not self.showing_answer else card_data["back"]
         ctk.CTkLabel(
             self.card_box, 
@@ -206,50 +318,52 @@ class QuizGeneView(ctk.CTkFrame):
             font=("Poppins", 14, "bold" if not self.showing_answer else "normal"), 
             text_color=("gray10", "#FFFFFF"), 
             justify="left", 
-            wraplength=530
-        ).pack(anchor="w", padx=20, pady=10, fill="both", expand=True)
+            wraplength=480
+        ).pack(anchor="w", padx=20, pady=8, fill="both", expand=True)
 
         # Hint Section (If revealed)
         if card_data.get("hint") and self.showing_hint:
             hint_box = ctk.CTkFrame(self.card_box, fg_color=("gray90", "#1E1E2E"), corner_radius=6)
-            hint_box.pack(fill="x", padx=20, pady=(0, 15))
+            hint_box.pack(fill="x", padx=20, pady=(0, 10))
             ctk.CTkLabel(
                 hint_box, 
                 text=f"💡 Hint: {card_data['hint']}", 
                 font=("Poppins", 10, "italic"), 
                 text_color="#F59E0B",
                 justify="left",
-                wraplength=500
-            ).pack(anchor="w", padx=10, pady=6)
+                wraplength=460
+            ).pack(anchor="w", padx=10, pady=5)
 
         # Navigation & Action Row
         nav_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
-        nav_frame.pack(fill="x", padx=25, pady=20)
-
-        # Back / Previous Button for Flashcards
-        if self.current_flashcard_idx > 0:
-            ctk.CTkButton(
-                nav_frame, text="⬅️ Prev", fg_color="gray50", hover_color="gray40", height=38, width=80, command=self.prev_flashcard
-            ).pack(side="left", padx=(0, 8))
-
-        if card_data.get("hint"):
-            hint_btn_text = "Hide Hint" if self.showing_hint else "💡 Show Hint"
-            ctk.CTkButton(
-                nav_frame, text=hint_btn_text, fg_color="#8B5CF6", hover_color="#7C3AED", height=38, width=100, command=self.toggle_hint
-            ).pack(side="left", padx=(0, 8))
+        nav_frame.pack(fill="x", padx=25, pady=15)
 
         ctk.CTkButton(
-            nav_frame, text="🔄 Flip Card", fg_color="#F59E0B", hover_color="#D97706", height=38, command=self.flip_flashcard
-        ).pack(side="left", expand=True, fill="x", padx=(0, 8))
+            nav_frame, text="←", font=("Poppins", 14, "bold"), fg_color="gray50", hover_color="gray40", width=45, height=38, 
+            command=self.prev_flashcard if self.current_flashcard_idx > 0 else lambda: None
+        ).pack(side="left")
 
-        if self.current_flashcard_idx < len(self.active_flashcards) - 1:
+        if card_data.get("hint"):
+            hint_btn_text = "Hide Hint" if self.showing_hint else "💡 Hint"
             ctk.CTkButton(
-                nav_frame, text="Next ➡️", fg_color="#3B82F6", height=38, command=self.next_flashcard
-            ).pack(side="right", expand=True, fill="x", padx=(8, 0))
+                nav_frame, text=hint_btn_text, fg_color="#8B5CF6", hover_color="#7C3AED", height=38, width=80, command=self.toggle_hint
+            ).pack(side="left", padx=8)
+
+        ctk.CTkButton(
+            nav_frame, text="🔄 FLIP", font=("Poppins", 12, "bold"), fg_color="#F59E0B", hover_color="#D97706", height=38, 
+            command=self.flip_flashcard
+        ).pack(side="left", expand=True, fill="x", padx=8)
+
+        if self.current_flashcard_idx < total_cards - 1:
+            ctk.CTkButton(
+                nav_frame, text="→", font=("Poppins", 14, "bold"), fg_color="#3B82F6", hover_color="#2563EB", width=45, height=38, 
+                command=self.next_flashcard
+            ).pack(side="right")
         else:
             ctk.CTkButton(
-                nav_frame, text="✨ Finish Review", fg_color="#10B981", height=38, command=self.build_setup_screen
-            ).pack(side="right", expand=True, fill="x", padx=(8, 0))
+                nav_frame, text="✨ Finish", font=("Poppins", 12, "bold"), fg_color="#10B981", hover_color="#059669", width=80, height=38, 
+                command=self.build_setup_screen
+            ).pack(side="right")
 
     def toggle_hint(self):
         self.showing_hint = not self.showing_hint
@@ -273,7 +387,7 @@ class QuizGeneView(ctk.CTkFrame):
             self.build_flashcard_screen()
 
     # =============================================================
-    # PRACTICE QUIZ SCREEN (With Back Option)
+    # 3. QUIZ QUESTION SCREEN (Supports MC, Identification, Enumeration)
     # =============================================================
     def build_quiz_question_screen(self, subject):
         self.clear_container()
@@ -286,38 +400,39 @@ class QuizGeneView(ctk.CTkFrame):
         header_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=15)
 
-        ctk.CTkLabel(
-            header_frame, 
-            text=f"[{q_type}]  Question {self.current_quiz_idx + 1} of {len(self.active_quiz_questions)}", 
-            font=("Poppins", 14, "bold"), 
-            text_color="#3B82F6"
-        ).pack(side="left")
+        badge = ctk.CTkFrame(header_frame, fg_color=("#E5E7EB", "#2B2B3D"), corner_radius=6)
+        badge.pack(side="left")
+        ctk.CTkLabel(badge, text=f"  {q_type}  ", font=("Poppins", 11, "bold"), text_color=("#3B82F6", "#60A5FA")).pack(padx=6, pady=4)
 
         ctk.CTkLabel(
-            header_frame, text=f"Subject: {subject}", font=("Poppins", 11), text_color=("gray30", "#AAAAAA")
+            header_frame, text=f"Question {self.current_quiz_idx + 1} of {len(self.active_quiz_questions)}", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")
         ).pack(side="right")
 
         ctk.CTkLabel(
             self.main_card, 
             text=q_data["prompt"], 
-            font=("Poppins", 13), 
+            font=("Poppins", 13, "bold"), 
             text_color=("gray10", "#FFFFFF"), 
             justify="left", 
-            wraplength=580
-        ).pack(anchor="w", padx=25, pady=(5, 15))
+            wraplength=550
+        ).pack(anchor="w", padx=25, pady=(10, 15))
 
         if q_type == "Multiple Choice":
-            for option in q_data["options"]:
-                rb = ctk.CTkRadioButton(
+            for idx, option in enumerate(q_data["options"]):
+                prefix = ["A.", "B.", "C.", "D."][idx] if idx < 4 else "•"
+                option_text = f"O {prefix} {option}"
+                
+                rb_btn = ctk.CTkRadioButton(
                     self.main_card, 
-                    text=option, 
+                    text=option_text, 
                     variable=self.selected_option_var, 
                     value=option, 
                     font=("Poppins", 12),
                     text_color=("gray10", "#FFFFFF"),
-                    fg_color="#3B82F6"
+                    fg_color="#3B82F6",
+                    hover_color="#2563EB"
                 )
-                rb.pack(anchor="w", padx=35, pady=8)
+                rb_btn.pack(anchor="w", padx=35, pady=6)
 
         elif q_type == "Identification":
             self.id_entry = ctk.CTkEntry(
@@ -326,7 +441,7 @@ class QuizGeneView(ctk.CTkFrame):
             self.id_entry.pack(fill="x", padx=35, pady=15)
 
         elif q_type == "Enumeration":
-            scroll_enum = ctk.CTkScrollableFrame(self.main_card, fg_color="transparent", height=150)
+            scroll_enum = ctk.CTkScrollableFrame(self.main_card, fg_color="transparent", height=140)
             scroll_enum.pack(fill="x", padx=25, pady=10)
 
             items_count = len(q_data.get("items", []))
@@ -339,31 +454,20 @@ class QuizGeneView(ctk.CTkFrame):
                 self.enum_entry_vars.append(v)
                 ctk.CTkEntry(row_f, textvariable=v, height=32, font=("Poppins", 11)).pack(side="left", fill="x", expand=True, padx=5)
 
-        # Action Row containing Back and Submit buttons
+        # Bottom Navigation (Previous & Next/Submit)
         btn_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         btn_frame.pack(fill="x", padx=25, pady=(25, 10))
 
         if self.current_quiz_idx > 0:
             ctk.CTkButton(
-                btn_frame,
-                text="⬅️ Previous",
-                font=("Poppins", 14, "bold"),
-                fg_color="gray50",
-                hover_color="gray40",
-                height=40,
-                width=110,
-                command=lambda: self.prev_quiz_answer(subject)
-            ).pack(side="left", padx=(0, 10))
+                btn_frame, text="← Previous", font=("Poppins", 12, "bold"), fg_color=("gray85", "#2B2B3D"), text_color=("gray10", "#FFFFFF"),
+                hover_color=("gray75", "#3A3A4E"), height=38, width=100, command=lambda: self.prev_quiz_answer(subject)
+            ).pack(side="left")
 
         ctk.CTkButton(
-            btn_frame,
-            text="Submit Answer ➔",
-            font=("Poppins", 14, "bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
-            height=40,
+            btn_frame, text="Next →", font=("Poppins", 12, "bold"), fg_color="#10B981", hover_color="#059669", height=38, width=110,
             command=lambda: self.submit_quiz_answer(subject, q_type)
-        ).pack(side="right", fill="x", expand=True)
+        ).pack(side="right")
 
     def submit_quiz_answer(self, subject, q_type):
         q_data = self.active_quiz_questions[self.current_quiz_idx]
@@ -378,16 +482,16 @@ class QuizGeneView(ctk.CTkFrame):
                 is_correct = True
 
         elif q_type == "Identification":
-            entered_text = self.id_entry.get().strip()
-            if not entered_text:
+            entered = self.id_entry.get().strip()
+            if not entered:
                 messagebox.showwarning("Warning", "Please type your answer.")
                 return
-            if entered_text.lower() in q_data["correct_answer"].strip().lower() or q_data["correct_answer"].strip().lower() in entered_text.lower():
+            if entered.lower() in q_data["correct_answer"].strip().lower() or q_data["correct_answer"].strip().lower() in entered.lower():
                 is_correct = True
 
         elif q_type == "Enumeration":
             user_items = [v.get().strip().lower() for v in self.enum_entry_vars if v.get().strip()]
-            correct_items = [item.strip().lower() for item in q_data["items"]]
+            correct_items = [item.strip().lower() for item in q_data.get("items", [])]
             
             matched = sum(1 for ui in user_items if any(ci in ui or ui in ci for ci in correct_items))
             if matched >= max(1, len(correct_items) // 2):  
@@ -415,30 +519,69 @@ class QuizGeneView(ctk.CTkFrame):
             self.current_quiz_idx -= 1
             self.build_quiz_question_screen(subject)
 
+    # =============================================================
+    # 4. QUIZ RESULTS SCREEN (Sketch Layout with Stats & Motivational Banner)
+    # =============================================================
     def build_quiz_results_screen(self, subject, total):
         self.clear_container()
 
-        percentage = round((self.user_score / total) * 100, 1)
+        percentage = round((self.user_score / total) * 100)
+
+        # Check Icon Badge
+        ctk.CTkLabel(self.main_card, text="✅", font=("Poppins", 36)).pack(pady=(25, 5))
 
         ctk.CTkLabel(
-            self.main_card, text="🎉 Quiz Completed!", font=("Poppins", 22, "bold"), text_color="#10B981"
-        ).pack(pady=(40, 10))
+            self.main_card, text="Quiz Complete!", font=("Poppins", 18, "bold"), text_color=("gray10", "#FFFFFF")
+        ).pack()
 
         ctk.CTkLabel(
-            self.main_card, 
-            text=f"Your Score: {self.user_score} / {total} ({percentage}%)", 
-            font=("Poppins", 16, "bold"), 
-            text_color=("gray10", "#FFFFFF")
-        ).pack(pady=10)
+            self.main_card, text=f"You answered {self.user_score} out of {total} correctly!", font=("Poppins", 12), text_color=("gray50", "#AAAAAA")
+        ).pack(pady=(2, 20))
+
+        # Stats 3-Column Card (Accuracy | Correct Answer | Time Taken)
+        stats_card = ctk.CTkFrame(self.main_card, fg_color=("#F3F4F6", "#2B2B3D"), corner_radius=10)
+        stats_card.pack(fill="x", padx=25, pady=(0, 20))
+        stats_card.grid_columnconfigure((0, 1, 2), weight=1)
+
+        # Stat 1: Accuracy
+        s1 = ctk.CTkFrame(stats_card, fg_color="transparent")
+        s1.grid(row=0, column=0, pady=12)
+        ctk.CTkLabel(s1, text=f"{percentage}%", font=("Poppins", 15, "bold"), text_color="#3B82F6").pack()
+        ctk.CTkLabel(s1, text="Accuracy", font=("Poppins", 10), text_color=("gray50", "#AAAAAA")).pack()
+
+        # Stat 2: Correct Answer
+        s2 = ctk.CTkFrame(stats_card, fg_color="transparent")
+        s2.grid(row=0, column=1, pady=12)
+        ctk.CTkLabel(s2, text=f"{self.user_score}/{total}", font=("Poppins", 15, "bold"), text_color="#10B981").pack()
+        ctk.CTkLabel(s2, text="Correct Answer", font=("Poppins", 10), text_color=("gray50", "#AAAAAA")).pack()
+
+        # Stat 3: Time Taken
+        s3 = ctk.CTkFrame(stats_card, fg_color="transparent")
+        s3.grid(row=0, column=2, pady=12)
+        ctk.CTkLabel(s3, text="1m 30s", font=("Poppins", 15, "bold"), text_color="#F59E0B").pack()
+        ctk.CTkLabel(s3, text="Time Taken", font=("Poppins", 10), text_color=("gray50", "#AAAAAA")).pack()
+
+        # Action Buttons
+        btn_row = ctk.CTkFrame(self.main_card, fg_color="transparent")
+        btn_row.pack(fill="x", padx=25, pady=(0, 20))
+        btn_row.grid_columnconfigure((0, 1), weight=1)
 
         ctk.CTkButton(
-            self.main_card,
-            text="🔄 Take Another Quiz",
-            font=("Poppins", 14, "bold"),
-            fg_color="#3B82F6",
-            height=40,
+            btn_row, text="Review Answers", font=("Poppins", 12, "bold"), fg_color=("gray85", "#2B2B3D"), text_color=("gray10", "#FFFFFF"),
+            hover_color=("gray75", "#3A3A4E"), height=38, command=lambda: messagebox.showinfo("Review", "Review mode enabled.")
+        ).grid(row=0, column=0, sticky="ew", padx=(0, 6))
+
+        ctk.CTkButton(
+            btn_row, text="Back to Quiz & Flashcards", font=("Poppins", 12, "bold"), fg_color="#3B82F6", hover_color="#2563EB", height=38,
             command=self.build_setup_screen
-        ).pack(fill="x", padx=50, pady=(30, 10))
+        ).grid(row=0, column=1, sticky="ew", padx=(6, 0))
+
+        # Motivational Footer Banner
+        footer_box = ctk.CTkFrame(self.main_card, fg_color=("#ECFDF5", "#1E293B"), corner_radius=8)
+        footer_box.pack(fill="x", padx=25, pady=(10, 20))
+        ctk.CTkLabel(
+            footer_box, text="🌱 Great Job! Keep going, you're making progress!", font=("Poppins", 11, "bold"), text_color="#10B981"
+        ).pack(pady=10)
 
     def on_show(self):
         self.build_setup_screen()
