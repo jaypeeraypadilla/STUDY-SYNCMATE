@@ -27,6 +27,12 @@ class StudySyncMateApp(tk.Tk):
     # Replicate CTk dark background in standard Tkinter
     self.configure(bg="#1E1E1E")
 
+    # App Icon
+    try:
+      self.iconbitmap(os.path.join(BASE_DIR, "logo_dark.ico"))
+    except Exception as e:
+      print(f"Failed to load application icon: {e}")
+
     # Initialize Logic Backend
     self.auth_manager = AuthManager()
     self.current_user = None

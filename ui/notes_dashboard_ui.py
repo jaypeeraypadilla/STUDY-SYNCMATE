@@ -1,6 +1,7 @@
 import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+from PIL import Image
 from logic.my_notes import NotesManager
 
 
@@ -184,14 +185,23 @@ class NotesDashboardView(ctk.CTkFrame):
         )
         self.preview_title_label.pack(anchor="w", padx=15, pady=(0, 8))
 
+        # Scrollable container for text content AND image attachments
+        self.preview_scroll_area = ctk.CTkScrollableFrame(self.preview_card, fg_color="transparent")
+        self.preview_scroll_area.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+
         self.preview_content_textbox = ctk.CTkTextbox(
-            self.preview_card,
+            self.preview_scroll_area,
+            height=100,
             fg_color="transparent",
             text_color=("gray20", "#E0E0E0"),
             font=("Poppins", 11)
         )
-        self.preview_content_textbox.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.preview_content_textbox.pack(fill="x", expand=False, padx=0, pady=(0, 10))
         self.preview_content_textbox.configure(state="disabled")
+
+        # Container specifically for rendering image preview widgets
+        self.preview_images_container = ctk.CTkFrame(self.preview_scroll_area, fg_color="transparent")
+        self.preview_images_container.pack(fill="both", expand=True, padx=0, pady=5)
 
     # =============================================================
     # LOGIC & EVENT HANDLERS
@@ -282,6 +292,10 @@ class NotesDashboardView(ctk.CTkFrame):
         self.preview_content_textbox.configure(state="normal")
         self.preview_content_textbox.delete("1.0", "end")
         self.preview_content_textbox.configure(state="disabled")
+
+        # Clear preview images
+        for widget in self.preview_images_container.winfo_children():
+            widget.destroy()
 
     def load_user_notes(self):
         user_id = self._get_user_id()
@@ -390,10 +404,50 @@ class NotesDashboardView(ctk.CTkFrame):
         self.preview_meta_label.configure(text=f"{note.get('subject', 'General').upper()} • {note.get('created_at', '')[:10]}")
         self.preview_title_label.configure(text=note.get("title", "Untitled"))
         
+        # Load text content
         self.preview_content_textbox.configure(state="normal")
         self.preview_content_textbox.delete("1.0", "end")
         self.preview_content_textbox.insert("1.0", note.get("content", ""))
         self.preview_content_textbox.configure(state="disabled")
+
+        # Clear previous preview images
+        for widget in self.preview_images_container.winfo_children():
+            widget.destroy()
+
+        # Load and render attached images dynamically
+        attachments = note.get("attachments", [])
+        for att in attachments:
+            if att.get("file_type") == "image":
+                saved_path = att.get("saved_path")
+                if saved_path and os.path.exists(saved_path):
+                    try:
+                        # Open and resize image for preview pane display (e.g., width 220px, auto-scaled height)
+                        pil_img = Image.open(saved_path)
+                        img_width, img_height = pil_img.size
+                        target_width = 220
+                        target_height = max(100, int((target_width / img_width) * img_height))
+
+                        ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(target_width, target_height))
+
+                        # Image wrapper card
+                        img_card = ctk.CTkFrame(self.preview_images_container, fg_color=("gray90", "#1E1E2E"), corner_radius=6)
+                        img_card.pack(fill="x", pady=6, padx=2)
+
+                        img_lbl = ctk.CTkLabel(img_card, text="", image=ctk_img)
+                        img_lbl.image = ctk_img  # Prevent garbage collection of image reference
+                        img_lbl.pack(padx=5, pady=5)
+
+                        # Filename caption label
+                        orig_name = att.get("original_name", "Attached Image")
+                        ctk.CTkLabel(
+                            img_card, 
+                            text=f"📷 {orig_name}", 
+                            font=("Poppins", 9, "italic"), 
+                            text_color=("gray50", "#AAAAAA")
+                        ).pack(anchor="w", padx=8, pady=(0, 5))
+
+                    except Exception as e:
+                        print(f"[Preview] Error rendering image {saved_path}: {e}")
 
     def load_note_into_preview_and_form(self, note: dict):
         self.load_note_into_preview(note)

@@ -43,7 +43,7 @@ class SettingsViewFrame(ctk.CTkFrame):
             button_color="#3B82F6",
             text_color=("gray10", "#FFFFFF")
         )
-        self.combo_theme.set("Dark")
+        self.combo_theme.set("Light")
         self.combo_theme.pack(fill="x", padx=20, pady=(0, 15))
 
         # 2. Font Size / UI Scaling Modifier
@@ -88,14 +88,14 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         # --- ABOUT TAB CONTENT ---
         ctk.CTkLabel(
-            self.tab_about, text="Study SyncMate v0.1.6", font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.tab_about, text="Study SyncMate v0.1.7", font=("Poppins", 16, "bold"), text_color="#3B82F6"
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
         about_text = (
             "Study SyncMate is a centralized, modular academic desktop application "
             "designed to help students organize notes, track tasks, generate practice quizzes, "
             "and monitor study progress seamlessly.\n\n"
-            "Developers: SilverNox(Ray), Peony(Richboy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), and Xywinn(Russel).\n\n\n\n"
+            "Developers: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), and Xywinn(Russel).\n\n\n\n"
             "Developed with Python, Tkinter, CustomTkinter, and SQLite."
         )
         ctk.CTkLabel(

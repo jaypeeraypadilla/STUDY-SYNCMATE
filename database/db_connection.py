@@ -1,11 +1,18 @@
 import os
+import sys
 import sqlite3
 from typing import List, Dict, Any, Optional
 
 class DatabaseManager:
     def __init__(self, db_filename: str = "syncmate.db"):
         """Initializes database path inside the database directory and creates required tables."""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        if getattr(sys, 'frozen', False):
+            # If running as a compiled .exe, save the database right next to the .exe file
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as a normal Python script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            
         self.db_path = os.path.join(base_dir, db_filename)
         self.init_db()
 
@@ -248,7 +255,6 @@ class DatabaseManager:
                 "total_study_hours": round(total_minutes / 60.0, 1),
                 "avg_quiz_score": f"{round(avg_quiz_score, 1)}%"
             }
-
 
 # Singleton database instance for convenient app-wide usage
 db = DatabaseManager()

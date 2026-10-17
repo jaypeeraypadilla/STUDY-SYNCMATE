@@ -1,4 +1,6 @@
+import os
 import customtkinter as ctk
+from PIL import Image
 
 
 class WelcomeView(ctk.CTkFrame):
@@ -17,7 +19,21 @@ class WelcomeView(ctk.CTkFrame):
         self.center_card.grid_propagate(False)
 
         # App Icon / Emoji
-        ctk.CTkLabel(self.center_card, text="🎓📚", font=("Poppins", 50)).pack(pady=(40, 10))
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(base_dir, "logo_dark.jpeg")
+
+        try:
+            pil_image = Image.open(logo_path)
+            self.logo_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(100, 100))
+            
+            # App Logo Label
+            self.logo_label = ctk.CTkLabel(self.center_card, image=self.logo_image, text="")
+            self.logo_label.pack(pady=(25, 10))
+        except Exception as e:
+            print(f"Failed to load logo image: {e}")
+            # Fallback to emoji if image fails to load
+            self.logo_label = ctk.CTkLabel(self.center_card, text="🎓📚", font=("Poppins", 50))
+            self.logo_label.pack(pady=(25, 10))
 
         # Title
         ctk.CTkLabel(
