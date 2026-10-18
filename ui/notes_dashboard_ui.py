@@ -6,7 +6,7 @@ from logic.my_notes import NotesManager
 
 
 class NotesDashboardView(ctk.CTkFrame):
-    """Clean 3-column Master-Detail-Preview Notes Workspace with synchronized state management."""
+    """Clean 3-column Master-Detail-Preview Notes Workspace with scalable font support."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -23,10 +23,10 @@ class NotesDashboardView(ctk.CTkFrame):
         self.pill_buttons = {}
         self.active_selected_note = None
 
-        # Configure 3-Column Grid Layout
-        self.grid_columnconfigure(0, weight=1)  # Left: Notes Explorer List
-        self.grid_columnconfigure(1, weight=1)  # Middle: Editor Form
-        self.grid_columnconfigure(2, weight=1)  # Right: Live Preview Pane
+        # Configure 3-Column Grid Layout with scalable weighting
+        self.grid_columnconfigure(0, weight=1, minsize=260)  # Left: Notes Explorer List
+        self.grid_columnconfigure(1, weight=1, minsize=300)  # Middle: Editor Form
+        self.grid_columnconfigure(2, weight=1, minsize=260)  # Right: Live Preview Pane
         self.grid_rowconfigure(0, weight=1)
 
         # =============================================================
@@ -43,11 +43,10 @@ class NotesDashboardView(ctk.CTkFrame):
         self.entry_search = ctk.CTkEntry(
             search_row, 
             placeholder_text="🔍 Search Notes...", 
-            height=34,
             fg_color=("gray90", "#2B2B3D"),
             text_color=("gray10", "#FFFFFF")
         )
-        self.entry_search.pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self.entry_search.pack(side="left", fill="x", expand=True, padx=(0, 6), ipady=4)
         self.entry_search.bind("<KeyRelease>", self.on_search_change)
 
         ctk.CTkButton(
@@ -57,11 +56,10 @@ class NotesDashboardView(ctk.CTkFrame):
             fg_color="#3B82F6",
             hover_color="#2563EB",
             width=70,
-            height=34,
             command=self.clear_form
-        ).pack(side="right")
+        ).pack(side="right", ipady=4)
 
-        self.pills_frame = ctk.CTkScrollableFrame(self.explorer_frame, orientation="horizontal", fg_color="transparent", height=42)
+        self.pills_frame = ctk.CTkScrollableFrame(self.explorer_frame, orientation="horizontal", fg_color="transparent", height=50)
         self.pills_frame.pack(fill="x", padx=12, pady=(0, 10))
 
         self.scroll_notes = ctk.CTkScrollableFrame(self.explorer_frame, fg_color="transparent")
@@ -73,16 +71,20 @@ class NotesDashboardView(ctk.CTkFrame):
         self.editor_frame = ctk.CTkScrollableFrame(self, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.editor_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=10)
 
+        # Editor Top Bar using Grid to guarantee the Save button stays fixed
         editor_top_bar = ctk.CTkFrame(self.editor_frame, fg_color="transparent")
         editor_top_bar.pack(fill="x", padx=15, pady=(15, 10))
+        editor_top_bar.grid_columnconfigure(0, weight=1)
+        editor_top_bar.grid_columnconfigure(1, weight=0)
 
         self.form_title_label = ctk.CTkLabel(
             editor_top_bar, 
             text="✏️ Create New Note", 
             font=("Poppins", 15, "bold"), 
-            text_color=("gray10", "#FFFFFF")
+            text_color=("gray10", "#FFFFFF"),
+            anchor="w"
         )
-        self.form_title_label.pack(side="left")
+        self.form_title_label.grid(row=0, column=0, sticky="ew")
 
         self.btn_save = ctk.CTkButton(
             editor_top_bar,
@@ -91,47 +93,45 @@ class NotesDashboardView(ctk.CTkFrame):
             fg_color="#10B981",
             hover_color="#059669",
             width=65,
-            height=30,
             command=self.save_note
         )
-        self.btn_save.pack(side="right")
+        self.btn_save.grid(row=0, column=1, sticky="e", padx=(10, 0), ipady=2)
 
         ctk.CTkLabel(self.editor_frame, text="SUBJECT", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
         self.entry_subject = ctk.CTkEntry(
             self.editor_frame, 
             placeholder_text="e.g., ITE 260", 
-            height=34,
             fg_color=("gray90", "#2B2B3D"),
             text_color=("gray10", "#FFFFFF")
         )
-        self.entry_subject.pack(fill="x", padx=15, pady=(0, 10))
+        self.entry_subject.pack(fill="x", padx=15, pady=(0, 10), ipady=4)
 
         ctk.CTkLabel(self.editor_frame, text="TITLE / TOPIC", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
         self.entry_title = ctk.CTkEntry(
             self.editor_frame, 
             placeholder_text="e.g., Arithmetic Operator", 
-            height=34,
             fg_color=("gray90", "#2B2B3D"),
             text_color=("gray10", "#FFFFFF")
         )
-        self.entry_title.pack(fill="x", padx=15, pady=(0, 10))
+        self.entry_title.pack(fill="x", padx=15, pady=(0, 10), ipady=4)
 
         ctk.CTkLabel(self.editor_frame, text="NOTE CONTENT", font=("Poppins", 10, "bold"), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=15, pady=(5, 2))
         
-        toolbar = ctk.CTkFrame(self.editor_frame, fg_color=("gray85", "#2B2B3D"), corner_radius=6, height=32)
+        toolbar = ctk.CTkFrame(self.editor_frame, fg_color=("gray85", "#2B2B3D"), corner_radius=6)
         toolbar.pack(fill="x", padx=15, pady=(0, 4))
 
-        ctk.CTkButton(toolbar, text="B", width=28, height=22, font=("Poppins", 10, "bold"), fg_color="#3B82F6", command=lambda: self.apply_formatting("**", "**")).pack(side="left", padx=2, pady=4)
-        ctk.CTkButton(toolbar, text="I", width=28, height=22, font=("Poppins", 10, "italic"), fg_color="#3B82F6", command=lambda: self.apply_formatting("*", "*")).pack(side="left", padx=2, pady=4)
-        ctk.CTkButton(toolbar, text="U", width=28, height=22, font=("Poppins", 10, "underline"), fg_color="#3B82F6", command=lambda: self.apply_formatting("__", "__")).pack(side="left", padx=2, pady=4)
-        ctk.CTkButton(toolbar, text="A⁺", width=28, height=22, font=("Poppins", 9, "bold"), fg_color="#8B5CF6", command=lambda: self.apply_formatting("# ", "")).pack(side="left", padx=2, pady=4)
-        ctk.CTkButton(toolbar, text="📋", width=28, height=22, font=("Poppins", 9), fg_color="#F59E0B", command=lambda: self.apply_formatting("- ", "")).pack(side="left", padx=2, pady=4)
+        ctk.CTkButton(toolbar, text="B", width=32, font=("Poppins", 10, "bold"), fg_color="#3B82F6", command=lambda: self.apply_formatting("**", "**")).pack(side="left", padx=3, pady=4)
+        ctk.CTkButton(toolbar, text="I", width=32, font=("Poppins", 10, "italic"), fg_color="#3B82F6", command=lambda: self.apply_formatting("*", "*")).pack(side="left", padx=3, pady=4)
+        ctk.CTkButton(toolbar, text="U", width=32, font=("Poppins", 10, "underline"), fg_color="#3B82F6", command=lambda: self.apply_formatting("__", "__")).pack(side="left", padx=3, pady=4)
+        ctk.CTkButton(toolbar, text="A⁺", width=32, font=("Poppins", 9, "bold"), fg_color="#8B5CF6", command=lambda: self.apply_formatting("# ", "")).pack(side="left", padx=3, pady=4)
+        ctk.CTkButton(toolbar, text="📋", width=32, font=("Poppins", 9), fg_color="#F59E0B", command=lambda: self.apply_formatting("- ", "")).pack(side="left", padx=3, pady=4)
 
         self.textbox_content = ctk.CTkTextbox(
             self.editor_frame, 
-            height=130,
+            height=150,
             fg_color=("gray90", "#2B2B3D"),
-            text_color=("gray10", "#FFFFFF")
+            text_color=("gray10", "#FFFFFF"),
+            font=("Poppins", 11)
         )
         self.textbox_content.pack(fill="x", padx=15, pady=(0, 10))
 
@@ -139,15 +139,15 @@ class NotesDashboardView(ctk.CTkFrame):
         att_box.pack(fill="x", padx=15, pady=5)
 
         ctk.CTkButton(
-            att_box, text="📎 Attach", font=("Poppins", 10, "bold"), fg_color="#3B82F6", width=90, height=28, command=self.select_files
-        ).pack(side="left", padx=8, pady=6)
+            att_box, text="📎 Attach", font=("Poppins", 10, "bold"), fg_color="#3B82F6", width=90, command=self.select_files
+        ).pack(side="left", padx=8, pady=8, ipady=2)
 
         self.lbl_attachments_count = ctk.CTkLabel(att_box, text="No files attached", font=("Poppins", 9), text_color=("gray50", "#AAAAAA"))
         self.lbl_attachments_count.pack(side="left", padx=4)
 
         ctk.CTkButton(
-            self.editor_frame, text="Reset Form", font=("Poppins", 10), fg_color=("gray70", "#4B5563"), height=30, command=self.clear_form
-        ).pack(fill="x", padx=15, pady=12)
+            self.editor_frame, text="Reset Form", font=("Poppins", 10), fg_color=("gray70", "#4B5563"), command=self.clear_form
+        ).pack(fill="x", padx=15, pady=(12, 15), ipady=4)
 
         # =============================================================
         # COLUMN 3: LIVE PREVIEW PANEL (Right Pane)
@@ -181,7 +181,8 @@ class NotesDashboardView(ctk.CTkFrame):
             font=("Poppins", 14, "bold"), 
             text_color=("gray10", "#FFFFFF"),
             anchor="w",
-            wraplength=260
+            wraplength=240,
+            justify="left"
         )
         self.preview_title_label.pack(anchor="w", padx=15, pady=(0, 8))
 
@@ -191,7 +192,7 @@ class NotesDashboardView(ctk.CTkFrame):
 
         self.preview_content_textbox = ctk.CTkTextbox(
             self.preview_scroll_area,
-            height=100,
+            height=120,
             fg_color="transparent",
             text_color=("gray20", "#E0E0E0"),
             font=("Poppins", 11)
@@ -325,13 +326,12 @@ class NotesDashboardView(ctk.CTkFrame):
                 self.pills_frame,
                 text=subj,
                 font=("Poppins", 10, "bold"),
-                width=55,
-                height=28,
+                width=65,
                 fg_color="#3B82F6" if subj == self.active_subject_filter else ("gray85", "#2B2B3D"),
                 text_color="white" if subj == self.active_subject_filter else ("gray10", "#CCCCCC"),
                 command=lambda s=subj: self.filter_by_subject(s)
             )
-            btn.pack(side="left", padx=3)
+            btn.pack(side="left", padx=3, ipady=2)
             self.pill_buttons[subj] = btn
 
     def render_filtered_notes(self):
@@ -384,7 +384,8 @@ class NotesDashboardView(ctk.CTkFrame):
                 font=("Poppins", 10), 
                 text_color=("gray30", "#CCCCCC"),
                 justify="left",
-                anchor="w"
+                anchor="w",
+                wraplength=220
             ).pack(anchor="w", padx=10, pady=(0, 6))
 
             act_bar = ctk.CTkFrame(card, fg_color="transparent")
@@ -396,8 +397,8 @@ class NotesDashboardView(ctk.CTkFrame):
             def make_delete_action(n=note):
                 return lambda: self.delete_note_action(n)
 
-            ctk.CTkButton(act_bar, text="View/Edit", width=65, height=22, font=("Poppins", 9, "bold"), fg_color="#3B82F6", command=make_select_action()).pack(side="left", padx=(0, 4))
-            ctk.CTkButton(act_bar, text="Delete", width=55, height=22, font=("Poppins", 9, "bold"), fg_color="#EF4444", command=make_delete_action()).pack(side="left")
+            ctk.CTkButton(act_bar, text="View/Edit", width=65, font=("Poppins", 9, "bold"), fg_color="#3B82F6", command=make_select_action()).pack(side="left", padx=(0, 4), ipady=1)
+            ctk.CTkButton(act_bar, text="Delete", width=55, font=("Poppins", 9, "bold"), fg_color="#EF4444", command=make_delete_action()).pack(side="left", ipady=1)
 
     def load_note_into_preview(self, note: dict):
         self.active_selected_note = note
@@ -421,7 +422,6 @@ class NotesDashboardView(ctk.CTkFrame):
                 saved_path = att.get("saved_path")
                 if saved_path and os.path.exists(saved_path):
                     try:
-                        # Open and resize image for preview pane display (e.g., width 220px, auto-scaled height)
                         pil_img = Image.open(saved_path)
                         img_width, img_height = pil_img.size
                         target_width = 220
@@ -429,15 +429,13 @@ class NotesDashboardView(ctk.CTkFrame):
 
                         ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(target_width, target_height))
 
-                        # Image wrapper card
                         img_card = ctk.CTkFrame(self.preview_images_container, fg_color=("gray90", "#1E1E2E"), corner_radius=6)
                         img_card.pack(fill="x", pady=6, padx=2)
 
                         img_lbl = ctk.CTkLabel(img_card, text="", image=ctk_img)
-                        img_lbl.image = ctk_img  # Prevent garbage collection of image reference
+                        img_lbl.image = ctk_img
                         img_lbl.pack(padx=5, pady=5)
 
-                        # Filename caption label
                         orig_name = att.get("original_name", "Attached Image")
                         ctk.CTkLabel(
                             img_card, 

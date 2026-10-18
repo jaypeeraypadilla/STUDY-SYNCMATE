@@ -13,12 +13,13 @@ class ScheduleManager:
     # =============================================================
 
     def create_task(
-        self, user_id: int, title: str, description: str, due_date: str, priority: str = "Medium"
+        self, user_id: int, title: str, description: str, due_date: str, priority: str = "Medium", due_time: str = "12:00"
     ) -> Tuple[bool, str]:
-        """Creates a new task with due date (YYYY-MM-DD) and priority."""
+        """Creates a new task with due date, due time, and priority[cite: 6]."""
         title = title.strip()
         description = description.strip()
         due_date = due_date.strip()
+        due_time = due_time.strip() or "12:00"
 
         if not title:
             return False, "Task title cannot be empty."
@@ -30,21 +31,22 @@ class ScheduleManager:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO tasks (user_id, title, description, due_date, priority, status)
-                    VALUES (?, ?, ?, ?, ?, 'Pending')
-                """, (user_id, title, description, due_date, priority))
+                    INSERT INTO tasks (user_id, title, description, due_date, due_time, priority, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+                """, (user_id, title, description, due_date, due_time, priority))
                 conn.commit()
                 return True, "Task added successfully!"
         except Exception as e:
             return False, f"Failed to add task: {str(e)}"
 
     def update_task(
-        self, task_id: int, title: str, description: str, due_date: str, priority: str
+        self, task_id: int, title: str, description: str, due_date: str, due_time: str, priority: str
     ) -> Tuple[bool, str]:
-        """Updates task details including title, description, due date, and priority."""
+        """Updates task details including title, description, due date, due time, and priority[cite: 6]."""
         title = title.strip()
         description = description.strip()
         due_date = due_date.strip()
+        due_time = due_time.strip() or "12:00"
 
         if not title:
             return False, "Task title cannot be empty."
@@ -57,29 +59,29 @@ class ScheduleManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE tasks 
-                    SET title = ?, description = ?, due_date = ?, priority = ? 
+                    SET title = ?, description = ?, due_date = ?, due_time = ?, priority = ? 
                     WHERE id = ?
-                """, (title, description, due_date, priority, task_id))
+                """, (title, description, due_date, due_time, priority, task_id))
                 conn.commit()
                 return True, "Task updated successfully!"
         except Exception as e:
             return False, f"Failed to update task: {str(e)}"
 
     def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Retrieves tasks for a user ordered by due date."""
+        """Retrieves tasks for a user ordered by due date and time[cite: 6]."""
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             if status_filter and status_filter != "All":
                 cursor.execute("""
-                    SELECT id, title, description, due_date, priority, status, created_at
+                    SELECT id, title, description, due_date, due_time, priority, status, created_at
                     FROM tasks WHERE user_id = ? AND status = ?
-                    ORDER BY due_date ASC
+                    ORDER BY due_date ASC, due_time ASC
                 """, (user_id, status_filter))
             else:
                 cursor.execute("""
-                    SELECT id, title, description, due_date, priority, status, created_at
+                    SELECT id, title, description, due_date, due_time, priority, status, created_at
                     FROM tasks WHERE user_id = ?
-                    ORDER BY due_date ASC
+                    ORDER BY due_date ASC, due_time ASC
                 """, (user_id,))
             
             return [dict(row) for row in cursor.fetchall()]

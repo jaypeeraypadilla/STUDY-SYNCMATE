@@ -16,7 +16,7 @@ class SettingsViewFrame(ctk.CTkFrame):
                 "lbl_theme": "Interface Theme Mode:",
                 "lbl_lang": "Application Language:",
                 "lbl_scale": "Font Size & UI Scale:",
-                "about_ver": "Study SyncMate v0.1.9",
+                "about_ver": "Study SyncMate v0.2.0",
                 "about_desc": (
                     "Study SyncMate is a centralized, modular academic desktop application "
                     "designed to help students organize notes, track tasks, generate practice quizzes, "
@@ -47,7 +47,7 @@ class SettingsViewFrame(ctk.CTkFrame):
                 "lbl_theme": "Tema ng Kagamitan (Theme Mode):",
                 "lbl_lang": "Wika ng Aplikasyon (Language):",
                 "lbl_scale": "Laki ng Teks at Sukat ng UI:",
-                "about_ver": "Study SyncMate v0.1.9",
+                "about_ver": "Study SyncMate v0.2.0",
                 "about_desc": (
                     "Ang Study SyncMate ay isang sentralisado at modular na desktop application "
                     "na idinisenyo upang tulungan ang mga mag-aaral na isaayos ang mga tala, subaybayan ang mga gawain, "

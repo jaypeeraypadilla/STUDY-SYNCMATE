@@ -283,6 +283,11 @@ class ScheduleViewFrame(ctk.CTkFrame):
             prio_color = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}.get(prio, "#3B82F6")
 
             ctk.CTkLabel(top_row, text=f"📌 {prio} Priority", font=("Poppins", 9, "bold"), text_color=prio_color).pack(side="left")
+            
+            # Display due time visibly in the agenda
+            due_time = task.get("due_time", "12:00")
+            ctk.CTkLabel(top_row, text=f"🕒 {due_time}", font=("Poppins", 9, "bold"), text_color="#3B82F6").pack(side="right")
+
             ctk.CTkLabel(card, text=task["title"], font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF")).pack(anchor="w", padx=8)
             
             if task.get("description"):
@@ -315,7 +320,9 @@ class ScheduleViewFrame(ctk.CTkFrame):
             info.pack(side="left", fill="x", expand=True)
 
             ctk.CTkLabel(info, text=task["title"], font=("Poppins", 10, "bold"), text_color=("gray10", "#FFFFFF"), anchor="w").pack(anchor="w")
-            ctk.CTkLabel(info, text=f"Due: {task['due_date']}", font=("Poppins", 8), text_color=("gray50", "#AAAAAA"), anchor="w").pack(anchor="w")
+            
+            due_time = task.get("due_time", "12:00")
+            ctk.CTkLabel(info, text=f"Due: {task['due_date']} at {due_time}", font=("Poppins", 8), text_color=("gray50", "#AAAAAA"), anchor="w").pack(anchor="w")
 
     def open_log_session_dialog(self):
         """Opens a theme-responsive modal dialog to log study sessions."""
@@ -330,7 +337,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         dialog.resizable(False, False)
         dialog.grab_set()
 
-        # Theme-adaptive background for modal popup window
         dialog.configure(fg_color=("white", "#1E1E2E"))
         dialog.update_idletasks()
 
@@ -390,14 +396,13 @@ class ScheduleViewFrame(ctk.CTkFrame):
         ).pack(fill="x", padx=20, pady=(5, 15))
 
     def open_edit_task_dialog(self, task: dict):
-        """Opens a theme-responsive modal dialog to edit an existing task."""
+        """Opens a theme-responsive modal dialog to edit an existing task including its due time."""
         dialog = ctk.CTkToplevel(self)
         dialog.title("Edit Task")
-        dialog.geometry("340x400")
+        dialog.geometry("340x450")
         dialog.resizable(False, False)
         dialog.grab_set()
 
-        # Theme-adaptive background for modal popup window
         dialog.configure(fg_color=("white", "#1E1E2E"))
 
         ctk.CTkLabel(
@@ -431,6 +436,15 @@ class ScheduleViewFrame(ctk.CTkFrame):
         entry_date.insert(0, task.get("due_date", ""))
         entry_date.pack(fill="x", padx=20, pady=(0, 8))
 
+        # Due Time
+        ctk.CTkLabel(dialog, text="Due Time (HH:MM - 24hr):", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
+        entry_time = ctk.CTkEntry(
+            dialog, height=32, font=("Poppins", 11),
+            fg_color=("gray90", "#3A3A3A"), text_color=("gray10", "#FFFFFF")
+        )
+        entry_time.insert(0, task.get("due_time", "12:00"))
+        entry_time.pack(fill="x", padx=20, pady=(0, 8))
+
         # Priority
         ctk.CTkLabel(dialog, text="Priority:", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         combo_priority = ctk.CTkOptionMenu(
@@ -444,6 +458,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
             new_title = entry_title.get().strip()
             new_desc = entry_desc.get().strip()
             new_date = entry_date.get().strip()
+            new_time = entry_time.get().strip()
             new_priority = combo_priority.get()
 
             if not new_title:
@@ -460,11 +475,20 @@ class ScheduleViewFrame(ctk.CTkFrame):
                 messagebox.showwarning("Invalid Date Format", "Please use YYYY-MM-DD format for the due date.", parent=dialog)
                 return
 
+            if not new_time:
+                new_time = "12:00"
+            try:
+                datetime.datetime.strptime(new_time, "%H:%M")
+            except ValueError:
+                messagebox.showwarning("Invalid Time Format", "Please use HH:MM format (e.g., 14:30).", parent=dialog)
+                return
+
             success, msg = self.schedule_logic.update_task(
                 task_id=task["id"],
                 title=new_title,
                 description=new_desc,
                 due_date=new_date,
+                due_time=new_time,
                 priority=new_priority
             )
 
@@ -561,7 +585,9 @@ class ScheduleViewFrame(ctk.CTkFrame):
             info_frame.pack(side="left", fill="x", expand=True)
 
             ctk.CTkLabel(info_frame, text=task["title"], font=("Poppins", 11, "bold"), text_color=("gray10", "#FFFFFF"), anchor="w").pack(anchor="w")
-            ctk.CTkLabel(info_frame, text=f"Due {task['due_date']}", font=("Poppins", 9), text_color=("gray50", "#AAAAAA"), anchor="w").pack(anchor="w")
+            
+            due_time = task.get("due_time", "12:00")
+            ctk.CTkLabel(info_frame, text=f"Due {task['due_date']} at {due_time}", font=("Poppins", 9), text_color=("gray50", "#AAAAAA"), anchor="w").pack(anchor="w")
 
             prio = task.get("priority", "Medium")
             prio_color = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}.get(prio, "#3B82F6")

@@ -73,12 +73,20 @@ class DatabaseManager:
                     title TEXT NOT NULL,
                     description TEXT,
                     due_date TEXT NOT NULL,
+                    due_time TEXT DEFAULT '12:00',
                     priority TEXT DEFAULT 'Medium',
                     status TEXT DEFAULT 'Pending',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
                 )
             """)
+            
+            # Safe migration check if tasks table already existed without due_time
+            try:
+                cursor.execute("ALTER TABLE tasks ADD COLUMN due_time TEXT DEFAULT '12:00'")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Column already exists
 
             # 4. QUIZZES TABLE (Flashcards & Quiz Records)
             cursor.execute("""
@@ -166,40 +174,42 @@ class DatabaseManager:
     # ==========================================
     # SCHEDULE & TASKS CRUD METHODS
     # ==========================================
-    def create_task(self, user_id: int, title: str, description: str, due_date: str, priority: str = "Medium") -> int:
-        """Adds a task to the study schedule."""
+    def create_task(
+        self, user_id: int, title: str, description: str, due_date: str, priority: str = "Medium", due_time: str = "12:00"
+    ) -> int:
+        """Adds a task with date and time to the study schedule."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO tasks (user_id, title, description, due_date, priority, status)
-                VALUES (?, ?, ?, ?, ?, 'Pending')
-            """, (user_id, title, description, due_date, priority))
+                INSERT INTO tasks (user_id, title, description, due_date, due_time, priority, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+            """, (user_id, title, description, due_date, due_time, priority))
             conn.commit()
             return cursor.lastrowid
 
-    def update_task(self, task_id: int, title: str, description: str, due_date: str, priority: str) -> bool:
-        """Updates task parameters (title, description, due_date, priority)."""
+    def update_task(self, task_id: int, title: str, description: str, due_date: str, due_time: str, priority: str) -> bool:
+        """Updates task parameters (title, description, due_date, due_time, priority)."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE tasks 
-                SET title = ?, description = ?, due_date = ?, priority = ? 
+                SET title = ?, description = ?, due_date = ?, due_time = ?, priority = ? 
                 WHERE id = ?
-            """, (title, description, due_date, priority, task_id))
+            """, (title, description, due_date, due_time, priority, task_id))
             conn.commit()
             return cursor.rowcount > 0
 
     def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Retrieves tasks for a user, with optional status filtering ('Pending', 'Completed')."""
+        """Retrieves tasks for a user sorted by due date and time, with optional status filtering."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if status_filter and status_filter != "All":
                 cursor.execute("""
-                    SELECT * FROM tasks WHERE user_id = ? AND status = ? ORDER BY due_date ASC
+                    SELECT * FROM tasks WHERE user_id = ? AND status = ? ORDER BY due_date ASC, due_time ASC
                 """, (user_id, status_filter))
             else:
                 cursor.execute("""
-                    SELECT * FROM tasks WHERE user_id = ? ORDER BY due_date ASC
+                    SELECT * FROM tasks WHERE user_id = ? ORDER BY due_date ASC, due_time ASC
                 """, (user_id,))
             return [dict(row) for row in cursor.fetchall()]
 
