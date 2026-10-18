@@ -27,8 +27,8 @@ class QuizGeneView(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # Main Container Frame (Theme Adaptive)
-        self.main_card = ctk.CTkFrame(self, corner_radius=12, fg_color=("white", "#1E1E2E"))
+        # Main Container Frame (Theme Adaptive Scrollable Frame for Font Size & Scaling Responsiveness)
+        self.main_card = ctk.CTkScrollableFrame(self, corner_radius=12, fg_color=("white", "#1E1E2E"))
         self.main_card.pack(fill="both", expand=True, padx=15, pady=15)
 
         self.build_setup_screen()
@@ -213,20 +213,23 @@ class QuizGeneView(ctk.CTkFrame):
                 btn.configure(fg_color=("gray85", "#2B2B3D"), text_color=("gray30", "#AAAAAA"))
 
     def show_loading_state(self):
-        """Displays loading UI while Gemini AI analyzes notes."""
+        """Displays loading UI while Gemini AI analyzes notes inside the scrollable container."""
         self.clear_container()
         load_box = ctk.CTkFrame(self.main_card, fg_color="transparent")
-        load_box.place(relx=0.5, rely=0.5, anchor="center")
+        load_box.pack(fill="both", expand=True, padx=20, pady=80)
 
-        ctk.CTkLabel(load_box, text="⚡", font=("Poppins", 48)).pack(pady=(0, 10))
+        inner = ctk.CTkFrame(load_box, fg_color="transparent")
+        inner.pack(expand=True)
+
+        ctk.CTkLabel(inner, text="⚡", font=("Poppins", 48)).pack(pady=(0, 10))
         ctk.CTkLabel(
-            load_box, 
+            inner, 
             text="Gemini AI is analyzing your notes...", 
             font=("Poppins", 16, "bold"), 
             text_color="#3B82F6"
         ).pack(pady=(0, 5))
         ctk.CTkLabel(
-            load_box, 
+            inner, 
             text="Generating customized study content and questions...", 
             font=("Poppins", 11), 
             text_color=("gray50", "#AAAAAA")
@@ -400,8 +403,14 @@ class QuizGeneView(ctk.CTkFrame):
         header_frame = ctk.CTkFrame(self.main_card, fg_color="transparent")
         header_frame.pack(fill="x", padx=20, pady=15)
 
+        # Match flashcards back button styling: transparent background, blue text ("← Quizzes") with confirmation dialog
+        ctk.CTkButton(
+            header_frame, text="← Quizzes", fg_color="transparent", text_color="#3B82F6", font=("Poppins", 13, "bold"),
+            hover_color=("gray90", "#2B2B3D"), command=self.confirm_exit_quiz
+        ).pack(side="left")
+
         badge = ctk.CTkFrame(header_frame, fg_color=("#E5E7EB", "#2B2B3D"), corner_radius=6)
-        badge.pack(side="left")
+        badge.pack(side="left", padx=(15, 0))
         ctk.CTkLabel(badge, text=f"  {q_type}  ", font=("Poppins", 11, "bold"), text_color=("#3B82F6", "#60A5FA")).pack(padx=6, pady=4)
 
         ctk.CTkLabel(
@@ -468,6 +477,11 @@ class QuizGeneView(ctk.CTkFrame):
             btn_frame, text="Next →", font=("Poppins", 12, "bold"), fg_color="#10B981", hover_color="#059669", height=38, width=110,
             command=lambda: self.submit_quiz_answer(subject, q_type)
         ).pack(side="right")
+
+    def confirm_exit_quiz(self):
+        """Prompts user for confirmation before exiting an active quiz session."""
+        if messagebox.askyesno("Exit Quiz", "Are you sure you want to exit? Your current quiz progress will be lost."):
+            self.build_setup_screen()
 
     def submit_quiz_answer(self, subject, q_type):
         q_data = self.active_quiz_questions[self.current_quiz_idx]

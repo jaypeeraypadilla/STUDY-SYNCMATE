@@ -19,7 +19,7 @@ class QuizGenerator:
     def __init__(self):
         self.db = db
         self.notes_manager = NotesManager()
-        self.api_key = "AQ.Ab8RN6INfLI-gvv1PsF9JDCyURU0oVKRGW6qj8uAvyfE8xi6xA"
+        self.api_key = "AQ.Ab8RN6KUm4RgnkkeYTxDnFNLGKJH4KdaokuhAieE1hudgN-ddA"
         self.client = None
 
         if GENAI_AVAILABLE:

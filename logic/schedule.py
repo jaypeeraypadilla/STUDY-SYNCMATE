@@ -38,6 +38,33 @@ class ScheduleManager:
         except Exception as e:
             return False, f"Failed to add task: {str(e)}"
 
+    def update_task(
+        self, task_id: int, title: str, description: str, due_date: str, priority: str
+    ) -> Tuple[bool, str]:
+        """Updates task details including title, description, due date, and priority."""
+        title = title.strip()
+        description = description.strip()
+        due_date = due_date.strip()
+
+        if not title:
+            return False, "Task title cannot be empty."
+
+        if not due_date:
+            return False, "Due date is required."
+
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE tasks 
+                    SET title = ?, description = ?, due_date = ?, priority = ? 
+                    WHERE id = ?
+                """, (title, description, due_date, priority, task_id))
+                conn.commit()
+                return True, "Task updated successfully!"
+        except Exception as e:
+            return False, f"Failed to update task: {str(e)}"
+
     def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieves tasks for a user ordered by due date."""
         with self.db.get_connection() as conn:

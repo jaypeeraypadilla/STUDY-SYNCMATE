@@ -20,7 +20,7 @@ class WelcomeView(ctk.CTkFrame):
 
         # App Icon / Emoji
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(base_dir, "logo_dark.jpeg")
+        logo_path = os.path.join(base_dir, "logo_white.png")
 
         try:
             pil_image = Image.open(logo_path)

@@ -6,15 +6,18 @@ from typing import List, Dict, Any, Optional
 class DatabaseManager:
     def __init__(self, db_filename: str = "syncmate.db"):
         """Initializes database path inside the database directory and creates required tables."""
-        if getattr(sys, 'frozen', False):
-            # If running as a compiled .exe, save the database right next to the .exe file
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            # Running as a normal Python script
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            
-        self.db_path = os.path.join(base_dir, db_filename)
-        self.init_db()
+        try:
+            if getattr(sys, 'frozen', False):
+                # If running as a compiled .exe, save the database right next to the .exe file
+                base_dir = os.path.dirname(sys.executable)
+            else:
+                # Running as a normal Python script
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                
+            self.db_path = os.path.join(base_dir, db_filename)
+            self.init_db()
+        except Exception as e:
+            print(f"[DatabaseManager Critical Error] Failed to initialize database at path: {e}")
 
     def get_connection(self) -> sqlite3.Connection:
         """Establishes SQLite connection with foreign key enforcement and row factory."""
@@ -173,6 +176,18 @@ class DatabaseManager:
             """, (user_id, title, description, due_date, priority))
             conn.commit()
             return cursor.lastrowid
+
+    def update_task(self, task_id: int, title: str, description: str, due_date: str, priority: str) -> bool:
+        """Updates task parameters (title, description, due_date, priority)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE tasks 
+                SET title = ?, description = ?, due_date = ?, priority = ? 
+                WHERE id = ?
+            """, (title, description, due_date, priority, task_id))
+            conn.commit()
+            return cursor.rowcount > 0
 
     def get_user_tasks(self, user_id: int, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieves tasks for a user, with optional status filtering ('Pending', 'Completed')."""

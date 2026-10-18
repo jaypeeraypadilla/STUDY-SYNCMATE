@@ -12,49 +12,105 @@ class ProfileViewFrame(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
         self.profile_logic = ProfileManager()
-        self.is_editing = False  # Tracks whether fields are unlocked for editing
+        self.is_editing = False  # Tracks whether personal fields are unlocked for editing
+        self.is_security_editing = False  # Tracks whether security fields are unlocked for editing
+
+        # Bilingual Translation Dictionary
+        self.translations = {
+            "English": {
+                "title_personal": "👤 Personal Information",
+                "lbl_profile_pic": "Profile Picture",
+                "btn_change_photo": "📷 Change Photo",
+                "lbl_username": "Username:",
+                "lbl_fullname": "Full Name:",
+                "lbl_age": "Age:",
+                "lbl_gender": "Gender:",
+                "lbl_course": "Course / Program:",
+                "lbl_year": "Year Level:",
+                "btn_edit": "✏️ Edit Changes",
+                "btn_save": "💾 Save Changes",
+                "title_security": "🔒 Security & Password",
+                "lbl_sec_q": "Security Question:",
+                "lbl_sec_a": "Security Answer:",
+                "lbl_curr_pass": "Current Password:",
+                "lbl_new_pass": "New Password:",
+                "btn_edit_sec": "✏️ Edit Changes",
+                "btn_save_sec": "💾 Save Changes",
+                "not_loaded": "Not loaded",
+                "ph_sec_answer": "Enter new security answer..."
+            },
+            "Filipino": {
+                "title_personal": "👤 Personal na Impormasyon",
+                "lbl_profile_pic": "Litrato ng Profile",
+                "btn_change_photo": "📷 Palitan ang Litrato",
+                "lbl_username": "Username:",
+                "lbl_fullname": "Buong Pangalan:",
+                "lbl_age": "Edad:",
+                "lbl_gender": "Kasarian:",
+                "lbl_course": "Kurso / Programa:",
+                "lbl_year": "Taon sa Kolehiyo:",
+                "btn_edit": "✏️ I-edit ang mga Pagbabago",
+                "btn_save": "💾 I-save ang mga Pagbabago",
+                "title_security": "🔒 Seguridad at Password",
+                "lbl_sec_q": "Tanong sa Seguridad:",
+                "lbl_sec_a": "Sagot sa Seguridad:",
+                "lbl_curr_pass": "Kasalukuyang Password:",
+                "lbl_new_pass": "Bagong Password:",
+                "btn_edit_sec": "✏️ I-edit ang mga Pagbabago",
+                "btn_save_sec": "💾 I-save ang mga Pagbabago",
+                "not_loaded": "Hindi nakalulan",
+                "ph_sec_answer": "Ilagay ang bagong sagot..."
+            }
+        }
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
+
+        # Main Scrollable Container for the entire profile view workspace
+        self.scroll_container = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll_container.pack(fill="both", expand=True, padx=5, pady=5)
+        self.scroll_container.grid_columnconfigure(0, weight=1)
+        self.scroll_container.grid_columnconfigure(1, weight=1)
 
         # =============================================================
         # LEFT PANEL: PERSONAL INFORMATION & AVATAR
         # =============================================================
-        self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.info_frame = ctk.CTkFrame(self.scroll_container, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.info_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        ctk.CTkLabel(
+        self.lbl_personal_title = ctk.CTkLabel(
             self.info_frame, 
-            text="👤 Personal Information", 
+            text=self.get_text("title_personal"), 
             font=("Poppins", 16, "bold"), 
-            text_color="#FFFFFF"
-        ).pack(anchor="w", padx=20, pady=(15, 10))
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.lbl_personal_title.pack(anchor="w", padx=20, pady=(15, 10))
 
         # Avatar & Change Photo Section
         self.avatar_frame = ctk.CTkFrame(self.info_frame, fg_color="transparent")
         self.avatar_frame.pack(fill="x", padx=20, pady=(5, 10))
 
-        self.avatar_canvas_frame = ctk.CTkFrame(self.avatar_frame, width=75, height=75, corner_radius=38, fg_color="#2B2B3D")
+        self.avatar_canvas_frame = ctk.CTkFrame(self.avatar_frame, width=75, height=75, corner_radius=38, fg_color=("gray90", "#2B2B3D"))
         self.avatar_canvas_frame.pack(side="left", padx=(0, 15))
         self.avatar_canvas_frame.pack_propagate(False)
 
-        self.lbl_avatar = ctk.CTkLabel(self.avatar_canvas_frame, text="👤", font=("Poppins", 26), text_color="#AAAAAA")
+        self.lbl_avatar = ctk.CTkLabel(self.avatar_canvas_frame, text="👤", font=("Poppins", 26), text_color=("gray40", "#AAAAAA"))
         self.lbl_avatar.pack(expand=True)
 
         avatar_btn_frame = ctk.CTkFrame(self.avatar_frame, fg_color="transparent")
         avatar_btn_frame.pack(side="left", fill="y", expand=True)
 
-        ctk.CTkLabel(
+        self.lbl_profile_pic_title = ctk.CTkLabel(
             avatar_btn_frame, 
-            text="Profile Picture", 
+            text=self.get_text("lbl_profile_pic"), 
             font=("Poppins", 12, "bold"), 
-            text_color="#FFFFFF"
-        ).pack(anchor="w", pady=(8, 2))
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.lbl_profile_pic_title.pack(anchor="w", pady=(8, 2))
 
         self.btn_change_avatar = ctk.CTkButton(
             avatar_btn_frame,
-            text="📷 Change Photo",
+            text=self.get_text("btn_change_photo"),
             font=("Poppins", 10, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
@@ -65,13 +121,27 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.btn_change_avatar.pack(anchor="w")
 
         # Username (Read-Only)
-        ctk.CTkLabel(self.info_frame, text="Username:", font=("Poppins", 11), text_color="#AAAAAA").pack(anchor="w", padx=20, pady=(2, 0))
-        self.entry_username = ctk.CTkEntry(self.info_frame, height=32, state="disabled")
+        self.lbl_username_title = ctk.CTkLabel(self.info_frame, text=self.get_text("lbl_username"), font=("Poppins", 11), text_color=("gray50", "#AAAAAA"))
+        self.lbl_username_title.pack(anchor="w", padx=20, pady=(2, 0))
+        self.entry_username = ctk.CTkEntry(
+            self.info_frame, 
+            height=32, 
+            state="disabled", 
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_username.pack(fill="x", padx=20, pady=(0, 8))
 
         # Full Name
-        ctk.CTkLabel(self.info_frame, text="Full Name:", font=("Poppins", 11)).pack(anchor="w", padx=20, pady=(2, 0))
-        self.entry_name = ctk.CTkEntry(self.info_frame, height=32, state="disabled")
+        self.lbl_fullname_title = ctk.CTkLabel(self.info_frame, text=self.get_text("lbl_fullname"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_fullname_title.pack(anchor="w", padx=20, pady=(2, 0))
+        self.entry_name = ctk.CTkEntry(
+            self.info_frame, 
+            height=32, 
+            state="disabled", 
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_name.pack(fill="x", padx=20, pady=(0, 8))
 
         # Age & Gender Row
@@ -79,17 +149,27 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.row_age_gender.pack(fill="x", padx=20, pady=(0, 8))
         self.row_age_gender.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkLabel(self.row_age_gender, text="Age:", font=("Poppins", 11)).grid(row=0, column=0, sticky="w")
-        self.entry_age = ctk.CTkEntry(self.row_age_gender, height=32, width=80, state="disabled")
+        self.lbl_age_title = ctk.CTkLabel(self.row_age_gender, text=self.get_text("lbl_age"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_age_title.grid(row=0, column=0, sticky="w")
+        self.entry_age = ctk.CTkEntry(
+            self.row_age_gender, 
+            height=32, 
+            width=80, 
+            state="disabled", 
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_age.grid(row=1, column=0, sticky="ew", padx=(0, 5))
 
-        ctk.CTkLabel(self.row_age_gender, text="Gender:", font=("Poppins", 11)).grid(row=0, column=1, sticky="w", padx=(5, 0))
+        self.lbl_gender_title = ctk.CTkLabel(self.row_age_gender, text=self.get_text("lbl_gender"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_gender_title.grid(row=0, column=1, sticky="w", padx=(5, 0))
         self.combo_gender = ctk.CTkOptionMenu(
             self.row_age_gender, 
             values=["Male", "Female", "Prefer not to say"], 
             height=32,
-            fg_color="#2B2B3D", 
+            fg_color=("gray85", "#2B2B3D"), 
             button_color="#3B82F6",
+            text_color=("gray10", "#FFFFFF"),
             state="disabled"
         )
         self.combo_gender.grid(row=1, column=1, sticky="ew", padx=(5, 0))
@@ -99,17 +179,26 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.row_academic.pack(fill="x", padx=20, pady=(0, 10))
         self.row_academic.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkLabel(self.row_academic, text="Course / Program:", font=("Poppins", 11)).grid(row=0, column=0, sticky="w")
-        self.entry_course = ctk.CTkEntry(self.row_academic, height=32, state="disabled")
+        self.lbl_course_title = ctk.CTkLabel(self.row_academic, text=self.get_text("lbl_course"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_course_title.grid(row=0, column=0, sticky="w")
+        self.entry_course = ctk.CTkEntry(
+            self.row_academic, 
+            height=32, 
+            state="disabled", 
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_course.grid(row=1, column=0, sticky="ew", padx=(0, 5))
 
-        ctk.CTkLabel(self.row_academic, text="Year Level:", font=("Poppins", 11)).grid(row=0, column=1, sticky="w", padx=(5, 0))
+        self.lbl_year_title = ctk.CTkLabel(self.row_academic, text=self.get_text("lbl_year"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_year_title.grid(row=0, column=1, sticky="w", padx=(5, 0))
         self.combo_year = ctk.CTkOptionMenu(
             self.row_academic, 
             values=["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"], 
             height=32,
-            fg_color="#2B2B3D", 
+            fg_color=("gray85", "#2B2B3D"), 
             button_color="#3B82F6",
+            text_color=("gray10", "#FFFFFF"),
             state="disabled"
         )
         self.combo_year.grid(row=1, column=1, sticky="ew", padx=(5, 0))
@@ -117,7 +206,7 @@ class ProfileViewFrame(ctk.CTkFrame):
         # Edit / Save Changes Toggle Button
         self.btn_edit_save = ctk.CTkButton(
             self.info_frame,
-            text="✏️ Edit Changes",
+            text=self.get_text("btn_edit"),
             font=("Poppins", 12, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
@@ -127,46 +216,114 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.btn_edit_save.pack(fill="x", padx=20, pady=(10, 15))
 
         # =============================================================
-        # RIGHT PANEL: SECURITY & PASSWORD CHANGE
+        # RIGHT PANEL: SECURITY & PASSWORD CHANGE (Theme Adaptive & Visible)
         # =============================================================
-        self.security_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
+        self.security_frame = ctk.CTkFrame(self.scroll_container, corner_radius=10, fg_color=("white", "#1E1E2E"))
         self.security_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
-        ctk.CTkLabel(
+        self.lbl_sec_header = ctk.CTkLabel(
             self.security_frame, 
-            text="🔒 Security & Password", 
+            text=self.get_text("title_security"), 
             font=("Poppins", 16, "bold"), 
-            text_color="#FFFFFF"
-        ).pack(anchor="w", padx=20, pady=(15, 10))
+            text_color=("gray10", "#FFFFFF")
+        )
+        self.lbl_sec_header.pack(anchor="w", padx=20, pady=(15, 10))
 
         # Security Question Display
-        ctk.CTkLabel(self.security_frame, text="Security Question:", font=("Poppins", 11), text_color="#AAAAAA").pack(anchor="w", padx=20, pady=(2, 0))
+        self.lbl_sec_q_title = ctk.CTkLabel(self.security_frame, text=self.get_text("lbl_sec_q"), font=("Poppins", 11), text_color=("gray50", "#AAAAAA"))
+        self.lbl_sec_q_title.pack(anchor="w", padx=20, pady=(2, 0))
+        
         self.lbl_sec_question = ctk.CTkLabel(
-            self.security_frame, text="Not loaded", font=("Poppins", 11, "italic"), text_color="#3B82F6", anchor="w"
+            self.security_frame, text=self.get_text("not_loaded"), font=("Poppins", 11, "italic"), text_color="#3B82F6", anchor="w"
         )
-        self.lbl_sec_question.pack(fill="x", padx=20, pady=(0, 15))
+        self.lbl_sec_question.pack(fill="x", padx=20, pady=(0, 10))
 
-        # Current Password
-        ctk.CTkLabel(self.security_frame, text="Current Password:", font=("Poppins", 11)).pack(anchor="w", padx=20, pady=(2, 0))
-        self.entry_curr_pass = ctk.CTkEntry(self.security_frame, show="•", height=32)
+        # Security Answer Input (Initially Disabled)
+        self.lbl_sec_a_title = ctk.CTkLabel(self.security_frame, text=self.get_text("lbl_sec_a"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_sec_a_title.pack(anchor="w", padx=20, pady=(2, 0))
+
+        self.entry_sec_answer = ctk.CTkEntry(
+            self.security_frame, 
+            height=32, 
+            state="disabled",
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF"), 
+            placeholder_text=self.get_text("ph_sec_answer")
+        )
+        self.entry_sec_answer.pack(fill="x", padx=20, pady=(0, 10))
+
+        # Current Password (Initially Disabled)
+        self.lbl_curr_pass_title = ctk.CTkLabel(self.security_frame, text=self.get_text("lbl_curr_pass"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_curr_pass_title.pack(anchor="w", padx=20, pady=(2, 0))
+        
+        self.entry_curr_pass = ctk.CTkEntry(
+            self.security_frame, 
+            show="•", 
+            height=32, 
+            state="disabled",
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_curr_pass.pack(fill="x", padx=20, pady=(0, 10))
 
-        # New Password
-        ctk.CTkLabel(self.security_frame, text="New Password:", font=("Poppins", 11)).pack(anchor="w", padx=20, pady=(2, 0))
-        self.entry_new_pass = ctk.CTkEntry(self.security_frame, show="•", height=32)
+        # New Password (Initially Disabled)
+        self.lbl_new_pass_title = ctk.CTkLabel(self.security_frame, text=self.get_text("lbl_new_pass"), font=("Poppins", 11), text_color=("gray10", "#FFFFFF"))
+        self.lbl_new_pass_title.pack(anchor="w", padx=20, pady=(2, 0))
+        
+        self.entry_new_pass = ctk.CTkEntry(
+            self.security_frame, 
+            show="•", 
+            height=32, 
+            state="disabled",
+            fg_color=("gray90", "#2B2B3D"), 
+            text_color=("gray10", "#FFFFFF")
+        )
         self.entry_new_pass.pack(fill="x", padx=20, pady=(0, 15))
 
-        # Change Password Button
-        self.btn_change_pass = ctk.CTkButton(
+        # Edit / Save Changes Toggle Button for Security Section
+        self.btn_edit_save_sec = ctk.CTkButton(
             self.security_frame,
-            text="🔑 Update Password",
+            text=self.get_text("btn_edit_sec"),
             font=("Poppins", 12, "bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
             height=38,
-            command=self.save_password
+            command=self.toggle_security_edit_mode
         )
-        self.btn_change_pass.pack(fill="x", padx=20, pady=(10, 15))
+        self.btn_edit_save_sec.pack(fill="x", padx=20, pady=(10, 15))
+
+    def get_text(self, key: str) -> str:
+        lang = getattr(self.controller, "current_language", "English")
+        return self.translations.get(lang, self.translations["English"]).get(key, key)
+
+    def refresh_language(self):
+        """Updates all visible texts in Profile and Security view when language changes."""
+        self.lbl_personal_title.configure(text=self.get_text("title_personal"))
+        self.lbl_profile_pic_title.configure(text=self.get_text("lbl_profile_pic"))
+        self.btn_change_avatar.configure(text=self.get_text("btn_change_photo"))
+        self.lbl_username_title.configure(text=self.get_text("lbl_username"))
+        self.lbl_fullname_title.configure(text=self.get_text("lbl_fullname"))
+        self.lbl_age_title.configure(text=self.get_text("lbl_age"))
+        self.lbl_gender_title.configure(text=self.get_text("lbl_gender"))
+        self.lbl_course_title.configure(text=self.get_text("lbl_course"))
+        self.lbl_year_title.configure(text=self.get_text("lbl_year"))
+        
+        if not self.is_editing:
+            self.btn_edit_save.configure(text=self.get_text("btn_edit"))
+        else:
+            self.btn_edit_save.configure(text=self.get_text("btn_save"))
+
+        self.lbl_sec_header.configure(text=self.get_text("title_security"))
+        self.lbl_sec_q_title.configure(text=self.get_text("lbl_sec_q"))
+        self.lbl_sec_a_title.configure(text=self.get_text("lbl_sec_a"))
+        self.entry_sec_answer.configure(placeholder_text=self.get_text("ph_sec_answer"))
+        self.lbl_curr_pass_title.configure(text=self.get_text("lbl_curr_pass"))
+        self.lbl_new_pass_title.configure(text=self.get_text("lbl_new_pass"))
+        
+        if not self.is_security_editing:
+            self.btn_edit_save_sec.configure(text=self.get_text("btn_edit_sec"))
+        else:
+            self.btn_edit_save_sec.configure(text=self.get_text("btn_save_sec"))
 
     # =============================================================
     # EVENT HANDLERS & LIFECYCLE
@@ -199,7 +356,7 @@ class ProfileViewFrame(ctk.CTkFrame):
                 messagebox.showerror("Error", message)
 
     def toggle_edit_mode(self):
-        """Toggles between locked view mode and editable save mode."""
+        """Toggles between locked view mode and editable save mode for personal info."""
         if not self.is_editing:
             self.is_editing = True
             self.entry_name.configure(state="normal")
@@ -208,7 +365,7 @@ class ProfileViewFrame(ctk.CTkFrame):
             self.entry_course.configure(state="normal")
             self.combo_year.configure(state="normal")
 
-            self.btn_edit_save.configure(text="💾 Save Changes", fg_color="#10B981", hover_color="#059669")
+            self.btn_edit_save.configure(text=self.get_text("btn_save"), fg_color="#10B981", hover_color="#059669")
         else:
             user_id = self._get_user_id()
             if not user_id:
@@ -239,9 +396,59 @@ class ProfileViewFrame(ctk.CTkFrame):
                 self.entry_course.configure(state="disabled")
                 self.combo_year.configure(state="disabled")
 
-                self.btn_edit_save.configure(text="✏️ Edit Changes", fg_color="#3B82F6", hover_color="#2563EB")
+                self.btn_edit_save.configure(text=self.get_text("btn_edit"), fg_color="#3B82F6", hover_color="#2563EB")
             else:
                 messagebox.showerror("Error", message)
+
+    def toggle_security_edit_mode(self):
+        """Toggles between locked view mode and editable save mode for security and password fields."""
+        if not self.is_security_editing:
+            self.is_security_editing = True
+            self.entry_sec_answer.configure(state="normal")
+            self.entry_curr_pass.configure(state="normal")
+            self.entry_new_pass.configure(state="normal")
+
+            self.btn_edit_save_sec.configure(text=self.get_text("btn_save_sec"), fg_color="#10B981", hover_color="#059669")
+        else:
+            user_id = self._get_user_id()
+            if not user_id:
+                messagebox.showerror("Session Error", "No active user session found.")
+                return
+
+            curr_pass = self.entry_curr_pass.get()
+            new_pass = self.entry_new_pass.get()
+            sec_answer = self.entry_sec_answer.get().strip()
+
+            updated_successfully = False
+
+            if sec_answer:
+                success, message = self.profile_logic.update_security_answer(user_id, sec_answer)
+                if not success:
+                    messagebox.showerror("Error", message)
+                    return
+                updated_successfully = True
+
+            if curr_pass or new_pass:
+                success, message = self.profile_logic.change_password(user_id, curr_pass, new_pass)
+                if not success:
+                    messagebox.showerror("Error", message)
+                    return
+                updated_successfully = True
+
+            if updated_successfully or (not sec_answer and not curr_pass and not new_pass):
+                if updated_successfully:
+                    messagebox.showinfo("Success", "Security settings updated successfully.")
+                
+                self.entry_curr_pass.delete(0, "end")
+                self.entry_new_pass.delete(0, "end")
+                self.entry_sec_answer.delete(0, "end")
+
+                self.is_security_editing = False
+                self.entry_sec_answer.configure(state="disabled")
+                self.entry_curr_pass.configure(state="disabled")
+                self.entry_new_pass.configure(state="disabled")
+
+                self.btn_edit_save_sec.configure(text=self.get_text("btn_edit_sec"), fg_color="#3B82F6", hover_color="#2563EB")
 
     def load_profile_data(self):
         """Fetches current user profile from database and populates UI fields and avatar."""
@@ -251,7 +458,6 @@ class ProfileViewFrame(ctk.CTkFrame):
 
         profile = self.profile_logic.get_user_profile(user_id)
         if profile:
-            # Render Profile Picture Avatar
             pic_path = profile.get("profile_pic_path")
             if pic_path and os.path.exists(pic_path):
                 try:
@@ -293,28 +499,12 @@ class ProfileViewFrame(ctk.CTkFrame):
 
             self.lbl_sec_question.configure(text=profile.get("security_question", "None set"))
 
-    def save_password(self):
-        """Updates user password."""
-        user_id = self._get_user_id()
-        if not user_id:
-            messagebox.showerror("Session Error", "No active user session found.")
-            return
-
-        curr_pass = self.entry_curr_pass.get()
-        new_pass = self.entry_new_pass.get()
-
-        success, message = self.profile_logic.change_password(user_id, curr_pass, new_pass)
-        if success:
-            messagebox.showinfo("Success", message)
-            self.entry_curr_pass.delete(0, "end")
-            self.entry_new_pass.delete(0, "end")
-        else:
-            messagebox.showerror("Error", message)
-
     def on_show(self):
         """Triggered automatically when profile view is raised."""
         self.is_editing = False
-        self.btn_edit_save.configure(text="✏️ Edit Changes", fg_color="#3B82F6", hover_color="#2563EB")
+        self.is_security_editing = False
+        self.btn_edit_save.configure(text=self.get_text("btn_edit"), fg_color="#3B82F6", hover_color="#2563EB")
+        self.btn_edit_save_sec.configure(text=self.get_text("btn_edit_sec"), fg_color="#3B82F6", hover_color="#2563EB")
         self.load_profile_data()
         
         self.entry_name.configure(state="disabled")
@@ -322,3 +512,11 @@ class ProfileViewFrame(ctk.CTkFrame):
         self.combo_gender.configure(state="disabled")
         self.entry_course.configure(state="disabled")
         self.combo_year.configure(state="disabled")
+        
+        self.entry_sec_answer.configure(state="disabled")
+        self.entry_curr_pass.configure(state="disabled")
+        self.entry_new_pass.configure(state="disabled")
+
+        self.entry_curr_pass.delete(0, "end")
+        self.entry_new_pass.delete(0, "end")
+        self.entry_sec_answer.delete(0, "end")

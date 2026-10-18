@@ -3,7 +3,7 @@ from tkinter import messagebox
 
 
 class SettingsViewFrame(ctk.CTkFrame):
-    """Settings Workspace for managing App Theme, Language, Font Scaling, Help, and About information."""
+    """Settings Workspace for managing App Theme, Language, Font Scaling, Help, About, and Terms information."""
 
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
@@ -16,7 +16,7 @@ class SettingsViewFrame(ctk.CTkFrame):
                 "lbl_theme": "Interface Theme Mode:",
                 "lbl_lang": "Application Language:",
                 "lbl_scale": "Font Size & UI Scale:",
-                "about_ver": "Study SyncMate v0.1.8",
+                "about_ver": "Study SyncMate v0.1.9",
                 "about_desc": (
                     "Study SyncMate is a centralized, modular academic desktop application "
                     "designed to help students organize notes, track tasks, generate practice quizzes, "
@@ -26,6 +26,15 @@ class SettingsViewFrame(ctk.CTkFrame):
                 ),
                 "tab_about": "About",
                 "tab_help": "Help & FAQ",
+                "tab_terms": "Terms & Conditions",
+                "terms_title": "Terms and Conditions",
+                "terms_desc": (
+                    "Welcome to Study SyncMate. By accessing or using this application, you agree to be bound by these terms:\n\n"
+                    "1. **Acceptance of Terms**: By using Study SyncMate, you agree to use this application strictly for academic and personal productivity purposes.\n\n"
+                    "2. **User Data & Privacy**: All notes, schedules, and profile details are stored locally via SQLite on your device. Ensure your login credentials and security recovery questions are kept secure.\n\n"
+                    "3. **Intellectual Property**: Study SyncMate, its layout, code structure, and branding assets are developed for academic and personal projects by its designated student developers.\n\n"
+                    "4. **Disclaimer of Warranties**: The software is provided 'as is' without warranties of any kind. The developers are not liable for any data loss or academic consequences arising from its usage."
+                ),
                 "faqs": [
                     ("How do I save notes?", "Go to 'My Notes', enter your Subject and Topic, then click 'Save Note' or 'Save Text Note Only'."),
                     ("How does Quiz Generator work?", "The AI quiz generator automatically pulls from your saved notes per subject to build practice tests and flashcards."),
@@ -38,7 +47,7 @@ class SettingsViewFrame(ctk.CTkFrame):
                 "lbl_theme": "Tema ng Kagamitan (Theme Mode):",
                 "lbl_lang": "Wika ng Aplikasyon (Language):",
                 "lbl_scale": "Laki ng Teks at Sukat ng UI:",
-                "about_ver": "Study SyncMate v0.1.8",
+                "about_ver": "Study SyncMate v0.1.9",
                 "about_desc": (
                     "Ang Study SyncMate ay isang sentralisado at modular na desktop application "
                     "na idinisenyo upang tulungan ang mga mag-aaral na isaayos ang mga tala, subaybayan ang mga gawain, "
@@ -48,6 +57,15 @@ class SettingsViewFrame(ctk.CTkFrame):
                 ),
                 "tab_about": "Tungkol sa App",
                 "tab_help": "Tulong at FAQ",
+                "tab_terms": "Mga Tuntunin at Kundisyon",
+                "terms_title": "Mga Tuntunin at Kundisyon",
+                "terms_desc": (
+                    "Maligayang pagdating sa Study SyncMate. Sa paggamit ng aplikasyong ito, sumasang-ayon ka sa mga sumusunod:\n\n"
+                    "1. **Paggamit ng Sistema**: Ang Study SyncMate ay para sa layuning akademiko at personal na produktibidad lamang.\n\n"
+                    "2. **Seguridad ng Datos**: Ang lahat ng tala, iskedyul, at detalye ay lokal na nakaimbak sa iyong device gamit ang SQLite. Panatilihing ligtas ang iyong account.\n\n"
+                    "3. **Karapatang Ari**: Ang disenyo, kodigo, at sistema ay binuo ng mga opisyal na developer para sa kanilang proyekto.\n\n"
+                    "4. **Limitasyon ng Pananagutan**: Ang software na ito ay ibinibigay 'kung ano man ito'. Hindi pananagutan ng mga developer ang anumang pagkawala ng datos."
+                ),
                 "faqs": [
                     ("Paano mag-save ng mga tala?", "Pumunta sa 'My Notes', ilagay ang iyong Paksa at Paksa (Subject/Topic), pagkatapos ay i-click ang 'Save Note' o 'Save Text Note Only'."),
                     ("Paano gumagana ang Quiz Generator?", "Awtomatikong kumukuha ang AI quiz generator mula sa iyong mga nakasaved na tala bawat paksa upang bumuo ng mga pagsusulit."),
@@ -143,7 +161,7 @@ class SettingsViewFrame(ctk.CTkFrame):
         ctk.CTkFrame(self.appearance_frame, height=2, fg_color=("gray80", "#2B2B3D")).pack(fill="x", padx=20, pady=10)
 
         # =============================================================
-        # RIGHT PANEL: ABOUT & HELP / FAQ
+        # RIGHT PANEL: ABOUT, HELP / FAQ & TERMS TABS
         # =============================================================
         self.info_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=("white", "#1E1E1E"))
         self.info_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
@@ -156,25 +174,59 @@ class SettingsViewFrame(ctk.CTkFrame):
         )
         self.info_tabview.pack(fill="both", expand=True, padx=15, pady=15)
 
-        self.tab_about = self.info_tabview.add(self.get_text("tab_about"))
-        self.tab_help = self.info_tabview.add(self.get_text("tab_help"))
+        # Initialize Tabs using translation keys
+        self.tab_names = ["tab_about", "tab_help", "tab_terms"]
+        for key in self.tab_names:
+            self.info_tabview.add(self.get_text(key))
 
         # --- ABOUT TAB CONTENT ---
+        self.about_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_about")), fg_color=("gray95", "#1E1E2E"))
+        self.about_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+
         self.lbl_about_header = ctk.CTkLabel(
-            self.tab_about, text=self.get_text("about_ver"), font=("Poppins", 16, "bold"), text_color="#3B82F6"
+            self.about_scroll, 
+            text=self.get_text("about_ver"), 
+            font=("Poppins", 16, "bold"), 
+            text_color=("#2563EB", "#60A5FA")
         )
         self.lbl_about_header.pack(anchor="w", padx=10, pady=(10, 5))
 
         self.lbl_about_body = ctk.CTkLabel(
-            self.tab_about, text=self.get_text("about_desc"), font=("Poppins", 13), text_color=("gray20", "#DDDDDD"), justify="left", wraplength=320
+            self.about_scroll, 
+            text=self.get_text("about_desc"), 
+            font=("Poppins", 13), 
+            text_color=("gray20", "#D1D5DB"), 
+            justify="left", 
+            wraplength=320
         )
         self.lbl_about_body.pack(anchor="w", padx=10, pady=5)
 
         # --- HELP & FAQ TAB CONTENT ---
-        self.help_scroll = ctk.CTkScrollableFrame(self.tab_help, fg_color="transparent")
+        self.help_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_help")), fg_color=("gray95", "#1E1E2E"))
         self.help_scroll.pack(fill="both", expand=True, padx=5, pady=5)
-
         self.populate_faqs()
+
+        # --- TERMS & CONDITIONS TAB CONTENT ---
+        self.terms_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_terms")), fg_color=("gray95", "#1E1E2E"))
+        self.terms_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+
+        self.lbl_terms_header = ctk.CTkLabel(
+            self.terms_scroll, 
+            text=self.get_text("terms_title"), 
+            font=("Poppins", 16, "bold"), 
+            text_color=("#059669", "#10B981")
+        )
+        self.lbl_terms_header.pack(anchor="w", padx=10, pady=(10, 5))
+
+        self.lbl_terms_body = ctk.CTkLabel(
+            self.terms_scroll, 
+            text=self.get_text("terms_desc"), 
+            font=("Poppins", 13), 
+            text_color=("gray20", "#D1D5DB"), 
+            justify="left", 
+            wraplength=320
+        )
+        self.lbl_terms_body.pack(anchor="w", padx=10, pady=5)
 
     def get_text(self, key: str) -> str:
         """Retrieves localized text based on the active language from the controller."""
@@ -188,7 +240,7 @@ class SettingsViewFrame(ctk.CTkFrame):
 
         faqs = self.get_text("faqs")
         for q, a in faqs:
-            q_box = ctk.CTkFrame(self.help_scroll, fg_color=("gray95", "#1E1E2E"), corner_radius=6)
+            q_box = ctk.CTkFrame(self.help_scroll, fg_color=("white", "#1E1E2E"), corner_radius=6)
             q_box.pack(fill="x", pady=4, padx=2)
             ctk.CTkLabel(q_box, text=f"❓ {q}", font=("Poppins", 11, "bold"), text_color=("#059669", "#10B981")).pack(anchor="w", padx=8, pady=(6, 2))
             ctk.CTkLabel(q_box, text=a, font=("Poppins", 10), text_color=("gray30", "#AAAAAA"), justify="left", wraplength=300).pack(anchor="w", padx=8, pady=(0, 6))
@@ -209,22 +261,55 @@ class SettingsViewFrame(ctk.CTkFrame):
         self.refresh_ui_texts()
 
     def refresh_ui_texts(self):
-        """Updates all visible labels and text elements when language changes."""
+        """Updates all visible labels, headers, and tabs when language changes."""
         self.lbl_appearance_title.configure(text=self.get_text("title_appearance"))
         self.lbl_theme_title.configure(text=self.get_text("lbl_theme"))
         self.lbl_lang_title.configure(text=self.get_text("lbl_lang"))
         self.lbl_scale_title.configure(text=self.get_text("lbl_scale"))
 
-        # Safely update Tab names if they exist
+        # Safely re-initialize or map tab view names cleanly for CTkTabview translation support
         try:
-            self.info_tabview.rename("About", self.get_text("tab_about"))
-            self.info_tabview.rename("Help & FAQ", self.get_text("tab_help"))
-        except Exception:
-            pass
+            current_tabs = list(self.info_tabview._tab_dict.keys())
+            for old_tab in current_tabs:
+                self.info_tabview._segmented_button.delete(old_tab)
+                del self.info_tabview._tab_dict[old_tab]
+            
+            # Re-add translated tab names
+            for key in self.tab_names:
+                self.info_tabview.add(self.get_text(key))
+            
+            # Re-pack or re-assign contents to the corresponding tabs
+            self.about_scroll.pack_forget()
+            self.about_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_about")), fg_color=("gray95", "#1E1E2E"))
+            self.about_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+            self.lbl_about_header.pack_forget()
+            self.lbl_about_header = ctk.CTkLabel(self.about_scroll, text=self.get_text("about_ver"), font=("Poppins", 16, "bold"), text_color=("#2563EB", "#60A5FA"))
+            self.lbl_about_header.pack(anchor="w", padx=10, pady=(10, 5))
+            self.lbl_about_body.pack_forget()
+            self.lbl_about_body = ctk.CTkLabel(self.about_scroll, text=self.get_text("about_desc"), font=("Poppins", 13), text_color=("gray20", "#D1D5DB"), justify="left", wraplength=320)
+            self.lbl_about_body.pack(anchor="w", padx=10, pady=5)
+
+            self.help_scroll.pack_forget()
+            self.help_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_help")), fg_color=("gray95", "#1E1E2E"))
+            self.help_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+            self.populate_faqs()
+
+            self.terms_scroll.pack_forget()
+            self.terms_scroll = ctk.CTkScrollableFrame(self.info_tabview.tab(self.get_text("tab_terms")), fg_color=("gray95", "#1E1E2E"))
+            self.terms_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+            self.lbl_terms_header.pack_forget()
+            self.lbl_terms_header = ctk.CTkLabel(self.terms_scroll, text=self.get_text("terms_title"), font=("Poppins", 16, "bold"), text_color=("#059669", "#10B981"))
+            self.lbl_terms_header.pack(anchor="w", padx=10, pady=(10, 5))
+            self.lbl_terms_body.pack_forget()
+            self.lbl_terms_body = ctk.CTkLabel(self.terms_scroll, text=self.get_text("terms_desc"), font=("Poppins", 13), text_color=("gray20", "#D1D5DB"), justify="left", wraplength=320)
+            self.lbl_terms_body.pack(anchor="w", padx=10, pady=5)
+        except Exception as e:
+            print(f"[SettingsView] Error updating tabs during language switch: {e}")
 
         self.lbl_about_header.configure(text=self.get_text("about_ver"))
         self.lbl_about_body.configure(text=self.get_text("about_desc"))
-        self.populate_faqs()
+        self.lbl_terms_header.configure(text=self.get_text("terms_title"))
+        self.lbl_terms_body.configure(text=self.get_text("terms_desc"))
 
     def change_ui_scaling(self, scale_str: str):
         """Changes global font and widget scaling size."""
@@ -239,7 +324,6 @@ class SettingsViewFrame(ctk.CTkFrame):
 
     def on_show(self):
         """Lifecycle method when switching to Settings view."""
-        # Ensure dropdown matches global language state whenever settings opens
         active_lang = getattr(self.controller, "current_language", "English")
         self.combo_language.set(active_lang)
         self.refresh_ui_texts()

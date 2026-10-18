@@ -111,6 +111,24 @@ class ProfileManager:
         except Exception as e:
             return False, f"Failed to update profile picture: {str(e)}", None
 
+    def update_security_answer(self, user_id: int, security_answer: str) -> Tuple[bool, str]:
+        """Updates the user's security answer securely with a new hash."""
+        security_answer = security_answer.strip().lower()
+        if not security_answer:
+            return False, "Security answer cannot be empty."
+
+        try:
+            answer_hash, _ = self._hash_password(security_answer)
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE users SET security_answer_hash = ? WHERE id = ?
+                """, (answer_hash, user_id))
+                conn.commit()
+            return True, "Security answer updated successfully!"
+        except Exception as e:
+            return False, f"Failed to update security answer: {str(e)}"
+
     def change_password(self, user_id: int, current_pass: str, new_pass: str) -> Tuple[bool, str]:
         """Verifies old password and updates user credentials with new PBKDF2 hash and salt."""
         current_pass = current_pass.strip()

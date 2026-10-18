@@ -113,18 +113,35 @@ class DashboardView(ctk.CTkFrame):
         self.header_left_frame = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         self.header_left_frame.pack(side="left", padx=15, pady=8)
 
-        self.logo_label = ctk.CTkLabel(
-            self.header_left_frame, 
-            text="📘", 
-            font=("Poppins", 20),
-            text_color=("gray10", "#FFFFFF")
-        )
-        self.logo_label.pack(side="left", padx=(0, 10))
+        # Container frame for logo + welcome text to sit side-by-side cleanly
+        brand_container = ctk.CTkFrame(self.header_left_frame, fg_color="transparent")
+        brand_container.pack(side="left")
+
+        self.logo_label = ctk.CTkLabel(brand_container, text="", font=("Poppins", 20))
+        self.logo_label.pack(side="left", padx=(0, 12))
+
+        # Robust logo path resolution with larger display size for better visibility
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(base_dir) if os.path.basename(base_dir) == "ui" else base_dir
+        logo_path = os.path.join(root_dir, "assets", "logo_white.png")
+
+        if os.path.exists(logo_path):
+            try:
+                logo_pil = Image.open(logo_path)
+                logo_ctk = ctk.CTkImage(light_image=logo_pil, dark_image=logo_pil, size=(65, 65))
+                self.logo_label.configure(image=logo_ctk)
+                self.logo_label.image = logo_ctk
+            except Exception as e:
+                print(f"[DashboardView] Error loading logo image from {logo_path}: {e}")
+                self.logo_label.configure(text="📘", text_color=("gray10", "#FFFFFF"))
+        else:
+            print(f"[DashboardView] Logo file not found at: {logo_path}. Falling back to emoji.")
+            self.logo_label.configure(text="📘", text_color=("gray10", "#FFFFFF"))
 
         self.welcome_label = ctk.CTkLabel(
-            self.header_left_frame, 
+            brand_container, 
             text=self.get_text("welcome_default"), 
-            font=("Poppins", 18, "bold"), 
+            font=("Poppins", 25, "bold"), 
             text_color=("gray10", "#FFFFFF")
         )
         self.welcome_label.pack(side="left")
