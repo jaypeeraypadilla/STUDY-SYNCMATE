@@ -120,22 +120,36 @@ class DashboardView(ctk.CTkFrame):
         self.logo_label = ctk.CTkLabel(brand_container, text="", font=("Poppins", 20))
         self.logo_label.pack(side="left", padx=(0, 12))
 
-        # Robust logo path resolution with larger display size for better visibility
+        # Robust logo path resolution with dynamic light/dark mode support
         base_dir = os.path.dirname(os.path.abspath(__file__))
         root_dir = os.path.dirname(base_dir) if os.path.basename(base_dir) == "ui" else base_dir
-        logo_path = os.path.join(root_dir, "assets", "logo_white.png")
+        
+        # Mga path para sa magkahiwalay na logo
+        logo_light_path = os.path.join(root_dir, "assets", "logo_white.png")
+        logo_dark_path = os.path.join(root_dir, "assets", "logo_dark.png")
 
-        if os.path.exists(logo_path):
+        if os.path.exists(logo_light_path) and os.path.exists(logo_dark_path):
             try:
-                logo_pil = Image.open(logo_path)
-                logo_ctk = ctk.CTkImage(light_image=logo_pil, dark_image=logo_pil, size=(65, 65))
+                logo_light_pil = Image.open(logo_light_path)
+                logo_dark_pil = Image.open(logo_dark_path)
+
+                target_size = (512, 512)
+                logo_light_pil = logo_light_pil.resize(target_size, Image.Resampling.LANCZOS)
+                logo_dark_pil = logo_dark_pil.resize(target_size, Image.Resampling.LANCZOS)
+                
+                # Ipasok ang magkaibang PIL image sa light_image at dark_image
+                logo_ctk = ctk.CTkImage(
+                    light_image=logo_light_pil, 
+                    dark_image=logo_dark_pil, 
+                    size=(65, 65)
+                )
                 self.logo_label.configure(image=logo_ctk)
                 self.logo_label.image = logo_ctk
             except Exception as e:
-                print(f"[DashboardView] Error loading logo image from {logo_path}: {e}")
+                print(f"[DashboardView] Error loading logo images: {e}")
                 self.logo_label.configure(text="📘", text_color=("gray10", "#FFFFFF"))
         else:
-            print(f"[DashboardView] Logo file not found at: {logo_path}. Falling back to emoji.")
+            print(f"[DashboardView] Logo files not found in assets. Falling back to emoji.")
             self.logo_label.configure(text="📘", text_color=("gray10", "#FFFFFF"))
 
         self.welcome_label = ctk.CTkLabel(

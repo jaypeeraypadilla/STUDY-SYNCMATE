@@ -273,3 +273,17 @@ class SignUpView(tk.Frame):
             self.after(1200, lambda: self.controller.show_frame("LoginView"))
         else:
             self.status_label.configure(text=message, fg="red")
+
+        self.clear_sign_up_form()
+
+    def clear_sign_up_form(self):
+        self.entry_name.delete(0, "end")
+        self.entry_age.delete(0, "end")
+        self.entry_course.delete(0, "end")
+        self.combo_question.set("Select Security Question")
+        self.entry_sec_answer.delete(0, "end")
+        self.combo_gender.set("Select Gender")
+        self.entry_username.delete(0, "end")
+        self.entry_password.delete(0, "end")
+        self.combo_year.set("Select Year Level")
+        

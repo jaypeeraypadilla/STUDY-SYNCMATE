@@ -21,6 +21,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
         self.current_month = today.month
         self.selected_date_str = today.strftime("%Y-%m-%d")
         self.active_tab = "Calendar"
+        self.task_sort_order = "High to Low"  # Default sorting state
 
         # Grid configuration: 3 Columns matching layout structure
         self.grid_columnconfigure(0, weight=2)  # Column 0: Monthly Calendar / Panel View Switcher
@@ -136,7 +137,7 @@ class ScheduleViewFrame(ctk.CTkFrame):
                 pills_row,
                 text=f_val.upper(),
                 font=("Poppins", 9, "bold"),
-                width=65,
+                width=55,
                 height=24,
                 fg_color="#3B82F6" if f_val == "All" else ("gray90", "#2B2B3D"),
                 text_color="white" if f_val == "All" else ("gray50", "#AAAAAA"),
@@ -144,6 +145,19 @@ class ScheduleViewFrame(ctk.CTkFrame):
             )
             btn.pack(side="left", padx=2)
             setattr(self, f"btn_pill_{f_val.lower()}", btn)
+
+        # Sorting Button sa My Tasks section
+        self.btn_task_sort = ctk.CTkButton(
+            pills_row,
+            text="Sort: High ➔ Low",
+            font=("Poppins", 9, "bold"),
+            width=100,
+            height=24,
+            fg_color=("gray85", "#2B2B3D"),
+            text_color=("gray10", "#FFFFFF"),
+            command=self.toggle_task_sort_order
+        )
+        self.btn_task_sort.pack(side="right", padx=2)
 
         self.scroll_tasks = ctk.CTkScrollableFrame(self.tasks_panel, fg_color="transparent")
         self.scroll_tasks.pack(fill="both", expand=True, padx=8, pady=(0, 10))
@@ -272,6 +286,9 @@ class ScheduleViewFrame(ctk.CTkFrame):
             ctk.CTkLabel(self.scroll_agenda, text=f"No deadlines for {self.selected_date_str}.", text_color=("gray50", "#888888"), font=("Poppins", 10), wraplength=180).pack(pady=20)
             return
 
+        priority_order = {"High": 0, "Medium": 1, "Low": 2}
+        day_tasks.sort(key=lambda x: (priority_order.get(x.get("priority", "Medium"), 1), x.get("due_time", "12:00")))
+
         for task in day_tasks:
             card = ctk.CTkFrame(self.scroll_agenda, fg_color=("gray95", "#2B2B3D"), corner_radius=8)
             card.pack(fill="x", pady=4, padx=2)
@@ -284,7 +301,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
 
             ctk.CTkLabel(top_row, text=f"📌 {prio} Priority", font=("Poppins", 9, "bold"), text_color=prio_color).pack(side="left")
             
-            # Display due time visibly in the agenda
             due_time = task.get("due_time", "12:00")
             ctk.CTkLabel(top_row, text=f"🕒 {due_time}", font=("Poppins", 9, "bold"), text_color="#3B82F6").pack(side="right")
 
@@ -303,6 +319,13 @@ class ScheduleViewFrame(ctk.CTkFrame):
         if not all_tasks:
             ctk.CTkLabel(self.scroll_panel_tasks, text="No tasks recorded yet.", text_color=("gray50", "#888888"), font=("Poppins", 10)).pack(pady=20)
             return
+
+        priority_order = {"High": 0, "Medium": 1, "Low": 2}
+        all_tasks.sort(key=lambda x: (
+            priority_order.get(x.get("priority", "Medium"), 1), 
+            x.get("due_date", "9999-12-31"), 
+            x.get("due_time", "12:00")
+        ))
 
         for task in all_tasks:
             card = ctk.CTkFrame(self.scroll_panel_tasks, fg_color=("white", "#1E1E2E"), corner_radius=6)
@@ -324,8 +347,17 @@ class ScheduleViewFrame(ctk.CTkFrame):
             due_time = task.get("due_time", "12:00")
             ctk.CTkLabel(info, text=f"Due: {task['due_date']} at {due_time}", font=("Poppins", 8), text_color=("gray50", "#AAAAAA"), anchor="w").pack(anchor="w")
 
+    def toggle_task_sort_order(self):
+        """Toggles the sorting order between High to Low and Low to High."""
+        if self.task_sort_order == "High to Low":
+            self.task_sort_order = "Low to High"
+            self.btn_task_sort.configure(text="Sort: Low ➔ High")
+        else:
+            self.task_sort_order = "High to Low"
+            self.btn_task_sort.configure(text="Sort: High ➔ Low")
+        self.load_tasks()
+
     def open_log_session_dialog(self):
-        """Opens a theme-responsive modal dialog to log study sessions."""
         user_id = self._get_user_id()
         subjects = self.quiz_logic.get_available_subjects(user_id)
         if not subjects:
@@ -346,12 +378,8 @@ class ScheduleViewFrame(ctk.CTkFrame):
 
         ctk.CTkLabel(dialog, text="Subject / Course:", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         combo_subject = ctk.CTkOptionMenu(
-            dialog, 
-            values=subjects, 
-            height=32,
-            fg_color=("gray85", "#2B2B3D"), 
-            button_color="#3B82F6",
-            text_color=("gray10", "#FFFFFF")
+            dialog, values=subjects, height=32,
+            fg_color=("gray85", "#2B2B3D"), button_color="#3B82F6", text_color=("gray10", "#FFFFFF")
         )
         combo_subject.set(subjects[0])
         combo_subject.pack(fill="x", padx=20, pady=(0, 10))
@@ -396,7 +424,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         ).pack(fill="x", padx=20, pady=(5, 15))
 
     def open_edit_task_dialog(self, task: dict):
-        """Opens a theme-responsive modal dialog to edit an existing task including its due time."""
         dialog = ctk.CTkToplevel(self)
         dialog.title("Edit Task")
         dialog.geometry("340x450")
@@ -409,7 +436,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
             dialog, text="✏️ Edit Task", font=("Poppins", 14, "bold"), text_color=("gray10", "#FFFFFF")
         ).pack(pady=(15, 10))
 
-        # Title
         ctk.CTkLabel(dialog, text="Task Title:", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         entry_title = ctk.CTkEntry(
             dialog, height=32, font=("Poppins", 11),
@@ -418,7 +444,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         entry_title.insert(0, task.get("title", ""))
         entry_title.pack(fill="x", padx=20, pady=(0, 8))
 
-        # Description
         ctk.CTkLabel(dialog, text="Description:", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         entry_desc = ctk.CTkEntry(
             dialog, height=32, font=("Poppins", 11),
@@ -427,7 +452,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         entry_desc.insert(0, task.get("description", ""))
         entry_desc.pack(fill="x", padx=20, pady=(0, 8))
 
-        # Due Date
         ctk.CTkLabel(dialog, text="Due Date (YYYY-MM-DD):", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         entry_date = ctk.CTkEntry(
             dialog, height=32, font=("Poppins", 11),
@@ -436,7 +460,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         entry_date.insert(0, task.get("due_date", ""))
         entry_date.pack(fill="x", padx=20, pady=(0, 8))
 
-        # Due Time
         ctk.CTkLabel(dialog, text="Due Time (HH:MM - 24hr):", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         entry_time = ctk.CTkEntry(
             dialog, height=32, font=("Poppins", 11),
@@ -445,7 +468,6 @@ class ScheduleViewFrame(ctk.CTkFrame):
         entry_time.insert(0, task.get("due_time", "12:00"))
         entry_time.pack(fill="x", padx=20, pady=(0, 8))
 
-        # Priority
         ctk.CTkLabel(dialog, text="Priority:", font=("Poppins", 11), text_color=("gray50", "#AAAAAA")).pack(anchor="w", padx=20)
         combo_priority = ctk.CTkOptionMenu(
             dialog, values=["High", "Medium", "Low"], height=32,
@@ -559,6 +581,18 @@ class ScheduleViewFrame(ctk.CTkFrame):
         if not tasks:
             ctk.CTkLabel(self.scroll_tasks, text="No tasks found.", text_color=("gray50", "#888888"), font=("Poppins", 10)).pack(pady=20)
             return
+
+        # --- DYNAMIC PRIORITY SORTING BASED ON BUTTON STATE ---
+        if self.task_sort_order == "High to Low":
+            priority_order = {"High": 0, "Medium": 1, "Low": 2}
+        else:
+            priority_order = {"High": 2, "Medium": 1, "Low": 0}
+
+        tasks.sort(key=lambda x: (
+            priority_order.get(x.get("priority", "Medium"), 1), 
+            x.get("due_date", "9999-12-31"), 
+            x.get("due_time", "12:00")
+        ))
 
         for task in tasks:
             card = ctk.CTkFrame(self.scroll_tasks, fg_color=("gray95", "#2B2B3D"), corner_radius=8)

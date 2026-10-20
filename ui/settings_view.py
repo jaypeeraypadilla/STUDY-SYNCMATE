@@ -16,7 +16,7 @@ class SettingsViewFrame(ctk.CTkFrame):
                 "lbl_theme": "Interface Theme Mode:",
                 "lbl_lang": "Application Language:",
                 "lbl_scale": "Font Size & UI Scale:",
-                "about_ver": "Study SyncMate v0.2.0",
+                "about_ver": "Study SyncMate v0.2.1",
                 "about_desc": (
                     "Study SyncMate is a centralized, modular academic desktop application "
                     "designed to help students organize notes, track tasks, generate practice quizzes, "
@@ -44,33 +44,33 @@ class SettingsViewFrame(ctk.CTkFrame):
             },
             "Filipino": {
                 "title_appearance": "🎨 Hitsura at Displey",
-                "lbl_theme": "Tema ng Kagamitan (Theme Mode):",
-                "lbl_lang": "Wika ng Aplikasyon (Language):",
-                "lbl_scale": "Laki ng Teks at Sukat ng UI:",
-                "about_ver": "Study SyncMate v0.2.0",
+                "lbl_theme": "App Theme Mode:",
+                "lbl_lang": "Language / Wika:",
+                "lbl_scale": "Font Size & UI Scaling:",
+                "about_ver": "Study SyncMate v0.2.1",
                 "about_desc": (
-                    "Ang Study SyncMate ay isang sentralisado at modular na desktop application "
-                    "na idinisenyo upang tulungan ang mga mag-aaral na isaayos ang mga tala, subaybayan ang mga gawain, "
-                    "lumikha ng mga pagsusulit, at bantayan ang kanilang progreso sa pag-aaral.\n\n"
-                    "Mga Developer: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), at Xywinn(Russel).\n\n\n\n"
-                    "Binuo gamit ang Python, Tkinter, CustomTkinter, at SQLite."
+                    "Ang Study SyncMate ay ang ultimate all-in-one academic desktop app na binuo para i-level-up ang "
+                    "productivity mo—mula sa pag-organisa ng notes, pag-track ng tasks, pag-generate ng AI quizzes, "
+                    "hanggang sa pag-monitor ng study progress mo nang walang kahirap-hirap!\n\n"
+                    "Dev Squad: SilverNox(Ray), Peony(Rich Boy), Yanyan(Jarylle), Athan(Nathanael), Exil3(Aron), at Xywinn(Russel).\n\n\n\n"
+                    "Powered by Python, Tkinter, CustomTkinter, at SQLite."
                 ),
-                "tab_about": "Tungkol sa App",
-                "tab_help": "Tulong at FAQ",
-                "tab_terms": "Mga Tuntunin at Kundisyon",
-                "terms_title": "Mga Tuntunin at Kundisyon",
+                "tab_about": "About",
+                "tab_help": "Help & FAQs",
+                "tab_terms": "Terms & Conditions",
+                "terms_title": "Terms and Conditions",
                 "terms_desc": (
-                    "Maligayang pagdating sa Study SyncMate. Sa paggamit ng aplikasyong ito, sumasang-ayon ka sa mga sumusunod:\n\n"
-                    "1. **Paggamit ng Sistema**: Ang Study SyncMate ay para sa layuning akademiko at personal na produktibidad lamang.\n\n"
-                    "2. **Seguridad ng Datos**: Ang lahat ng tala, iskedyul, at detalye ay lokal na nakaimbak sa iyong device gamit ang SQLite. Panatilihing ligtas ang iyong account.\n\n"
-                    "3. **Karapatang Ari**: Ang disenyo, kodigo, at sistema ay binuo ng mga opisyal na developer para sa kanilang proyekto.\n\n"
-                    "4. **Limitasyon ng Pananagutan**: Ang software na ito ay ibinibigay 'kung ano man ito'. Hindi pananagutan ng mga developer ang anumang pagkawala ng datos."
+                    "Welcome sa Study SyncMate! Sa paggamit ng app na ito, sumasang-ayon ka sa mga sumusunod:\n\n"
+                    "1. **App Usage**: Gamitin ang Study SyncMate strictly para sa academic at personal productivity purposes mo.\n\n"
+                    "2. **Data & Privacy**: Lahat ng notes, schedules, at profile info mo ay naka-store locally sa device mo gamit ang SQLite. Ingatan ang iyong login credentials.\n\n"
+                    "3. **Intellectual Property**: Ang buong disenyo, code, at branding assets ay original work ng ating student developer squad.\n\n"
+                    "4. **Disclaimer**: Ang app ay ibinibigay 'as is'. Hindi responsibilidad ng dev team kung may mawala mang data o magkaroon ng academic issues."
                 ),
                 "faqs": [
-                    ("Paano mag-save ng mga tala?", "Pumunta sa 'My Notes', ilagay ang iyong Paksa at Paksa (Subject/Topic), pagkatapos ay i-click ang 'Save Note' o 'Save Text Note Only'."),
-                    ("Paano gumagana ang Quiz Generator?", "Awtomatikong kumukuha ang AI quiz generator mula sa iyong mga nakasaved na tala bawat paksa upang bumuo ng mga pagsusulit."),
-                    ("Paano ko masusubaybayan ang oras ng pag-aaral?", "Gamitin ang interactive na kalendaryo sa Schedule upang magplano ng mga deadline at suriin ang katayuan ng gawain."),
-                    ("Maaari ko bang palitan ang aking password?", "Oo! Pumunta sa Profile workspace gamit ang top header o settings upang i-update ang iyong mga kredensyal.")
+                    ("Paano mag-save ng notes?", "Pumunta lang sa 'My Notes', ilagay ang Subject at Topic mo, tapos i-click ang 'Save' o kaya 'Save Text Note Only'. Easy!"),
+                    ("Paano gumagana ang Quiz Generator?", "Awtomatikong binabasa ng AI quiz generator ang iyong saved notes per subject para i-convert sa practice tests at flashcards."),
+                    ("Paano ko mami-monitor ang study hours ko?", "Gamitin ang interactive Schedule calendar para i-set ang deadlines at i-check ang status ng iyong tasks."),
+                    ("Pwede ko bang palitan ang password ko?", "Yes na yes! Pumunta lang sa Profile workspace sa taas o sa settings para i-update ang credentials mo.")
                 ]
             }
         }
